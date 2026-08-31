@@ -1,0 +1,6 @@
+{
+  "name": "TURNIA - Plataforma SaaS de Gestión de Turnos y Reservas",
+  "description": "Plataforma SaaS profesional e integral para la gestión de reservas, citas, calendarios, servicios, profesionales, horarios y reportes de negocio.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
