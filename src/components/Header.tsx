@@ -197,17 +197,8 @@ export const Header: React.FC<HeaderProps> = ({
           className="flex items-center gap-2 p-1 rounded-full hover:ring-2 hover:ring-[#24389c]/40 transition-all"
           title="Ver perfil de administrador"
         >
-          <div className="w-8 h-8 rounded-full bg-[#3f51b5] text-white flex items-center justify-center overflow-hidden border border-[#e1e3e4] shadow-2xs font-semibold text-sm">
-            {!avatarError ? (
-              <img
-                src={ADMIN_AVATAR_URL}
-                alt="Admin Avatar"
-                className="w-full h-full object-cover"
-                onError={() => setAvatarError(true)}
-              />
-            ) : (
-              <span>A</span>
-            )}
+          <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-[#24389c] to-[#3f51b5] text-white flex items-center justify-center border border-[#e1e3e4] shadow-2xs font-bold text-xs">
+            <span>A</span>
           </div>
         </button>
       </div>
