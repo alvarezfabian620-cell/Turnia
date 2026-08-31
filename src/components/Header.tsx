@@ -89,16 +89,8 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
       </div>
 
-      {/* Right side: Quick Action, Notifications, Help, Profile */}
+      {/* Right side: Notifications, Help, Profile */}
       <div className="flex items-center gap-2 md:gap-3">
-        {/* Quick New Booking button for fast access */}
-        <button
-          onClick={onOpenNewBooking}
-          className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-[#24389c] hover:bg-[#1d2d7c] text-white rounded-lg text-xs font-semibold shadow-xs transition-colors"
-        >
-          <span className="material-symbols-outlined text-[18px]">add</span>
-          <span>Nueva reserva</span>
-        </button>
 
         {/* Notifications Popover */}
         <div className="relative" ref={notifRef}>
