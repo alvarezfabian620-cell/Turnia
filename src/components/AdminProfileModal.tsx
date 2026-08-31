@@ -1,16 +1,18 @@
 import React from 'react';
-import { ADMIN_AVATAR_URL } from '../data/mockData';
+import { BusinessConfig } from '../types';
 
 interface AdminProfileModalProps {
   isOpen: boolean;
   onClose: () => void;
   onNavigateToSettings: () => void;
+  config?: BusinessConfig;
 }
 
 export const AdminProfileModal: React.FC<AdminProfileModalProps> = ({
   isOpen,
   onClose,
   onNavigateToSettings,
+  config,
 }) => {
   if (!isOpen) return null;
 
@@ -28,15 +30,13 @@ export const AdminProfileModal: React.FC<AdminProfileModalProps> = ({
         </div>
 
         <div className="flex flex-col items-center text-center py-3">
-          <div className="w-20 h-20 rounded-full border-2 border-[#24389c] p-0.5 overflow-hidden shadow-sm mb-3">
-            <img
-              src={ADMIN_AVATAR_URL}
-              alt="Admin Profile"
-              className="w-full h-full object-cover rounded-full"
-            />
+          <div className="w-20 h-20 rounded-full bg-[#24389c] text-white font-bold text-2xl flex items-center justify-center border-2 border-[#24389c] p-0.5 shadow-sm mb-3">
+            {config?.name ? config.name.slice(0, 2).toUpperCase() : 'AD'}
           </div>
-          <h4 className="font-bold text-lg text-[#191c1d]">Administrador Principal</h4>
-          <p className="text-xs text-[#757684]">admin@estudioelite.com</p>
+          <h4 className="font-bold text-lg text-[#191c1d]">
+            {config?.name || 'Administrador Principal'}
+          </h4>
+          <p className="text-xs text-[#757684]">{config?.email || 'admin@turnia.app'}</p>
           <span className="mt-2 inline-flex items-center px-3 py-0.5 rounded-full text-xs font-semibold bg-[#dee0ff] text-[#24389c]">
             Super Administrador · TURNIA
           </span>
@@ -54,12 +54,12 @@ export const AdminProfileModal: React.FC<AdminProfileModalProps> = ({
             </span>
           </div>
           <div className="flex justify-between py-1">
-            <span className="text-[#757684]">Plan actual:</span>
-            <span className="font-semibold text-[#24389c]">TURNIA Pro Enterprise</span>
+            <span className="text-[#757684]">Categoría de negocio:</span>
+            <span className="font-semibold text-[#24389c]">{config?.category || 'SaaS'}</span>
           </div>
           <div className="flex justify-between py-1">
-            <span className="text-[#757684]">Última conexión:</span>
-            <span className="text-[#454652]">Hoy, 09:15 AM</span>
+            <span className="text-[#757684]">Zona Horaria:</span>
+            <span className="text-[#454652]">{config?.timeZone || 'America/Bogota'}</span>
           </div>
         </div>
 

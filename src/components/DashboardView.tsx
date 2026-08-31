@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Reservation, ActivityItem, ViewMode } from '../types';
 
 interface DashboardViewProps {
@@ -22,21 +22,41 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   onOpenNewBooking,
   searchQuery = '',
 }) => {
-  // Compute real-time stats
-  const todayReservations = reservations.filter((r) => r.date === '2023-10-24' || r.date.includes('2023-10'));
-  const pendingCount = reservations.filter((r) => r.status === 'pendiente').length;
-  const todayCount = 24; // baseline stat as shown in mockup with dynamic additions
+  const todayStr = new Date().toISOString().split('T')[0];
 
-  // Filter today reservations if search query exists
-  const displayedReservations = reservations.slice(0, 5).filter((r) => {
-    if (!searchQuery) return true;
+  // Dynamic real-time stats
+  const todayReservations = useMemo(
+    () => reservations.filter((r) => r.date === todayStr),
+    [reservations, todayStr]
+  );
+
+  const pendingCount = useMemo(
+    () => reservations.filter((r) => r.status === 'pendiente').length,
+    [reservations]
+  );
+
+  const todayCount = todayReservations.length;
+
+  // Upcoming non-cancelled reservations
+  const upcomingReservations = useMemo(() => {
+    return [...reservations]
+      .filter((r) => r.status !== 'cancelada' && r.status !== 'completada')
+      .sort((a, b) => `${a.date} ${a.time}`.localeCompare(`${b.date} ${b.time}`))
+      .slice(0, 4);
+  }, [reservations]);
+
+  // Display reservations in table (today's or recent if today is empty)
+  const displayedReservations = useMemo(() => {
+    let sourceList = todayReservations.length > 0 ? todayReservations : reservations.slice(0, 8);
+    if (!searchQuery) return sourceList;
     const q = searchQuery.toLowerCase();
-    return (
-      r.clientName.toLowerCase().includes(q) ||
-      r.serviceName.toLowerCase().includes(q) ||
-      r.professionalName.toLowerCase().includes(q)
+    return reservations.filter(
+      (r) =>
+        r.clientName.toLowerCase().includes(q) ||
+        r.serviceName.toLowerCase().includes(q) ||
+        r.professionalName.toLowerCase().includes(q)
     );
-  });
+  }, [todayReservations, reservations, searchQuery]);
 
   const getStatusBadge = (status: Reservation['status']) => {
     switch (status) {
@@ -84,7 +104,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             Buenos días, Administrador
           </h2>
           <p className="text-[#454652] text-sm md:text-base mt-1">
-            Aquí tienes un resumen de la actividad de tu negocio.
+            Aquí tienes un resumen de la actividad en tiempo real de tu negocio.
           </p>
         </div>
 
@@ -173,7 +193,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           <div className="bg-white border border-[#e1e3e4] rounded-xl flex flex-col overflow-hidden shadow-2xs">
             <div className="px-6 py-4 border-b border-[#e1e3e4] flex justify-between items-center bg-white">
               <h3 className="font-semibold text-base md:text-lg text-[#191c1d]">
-                Reservas de hoy
+                {todayReservations.length > 0 ? 'Reservas de hoy' : 'Últimas reservas'}
               </h3>
               <button
                 onClick={() => onNavigate('reservas')}
@@ -209,7 +229,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                   {displayedReservations.length === 0 ? (
                     <tr>
                       <td colSpan={5} className="text-center py-8 text-[#757684]">
-                        No se encontraron reservas con ese criterio.
+                        No hay reservas para mostrar. Crea una nueva reserva para comenzar.
                       </td>
                     </tr>
                   ) : (
@@ -248,91 +268,40 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             <div className="flex justify-between items-center mb-4">
               <h3 className="font-semibold text-base text-[#191c1d]">Próximas reservas</h3>
               <span className="text-xs px-2 py-0.5 rounded-full bg-[#f3f4f5] text-[#454652] font-medium">
-                4 próximas
+                {upcomingReservations.length} próximas
               </span>
             </div>
 
-            <ul className="flex flex-col gap-3.5">
-              <li
-                onClick={() => onNavigate('calendario')}
-                className="flex gap-3 items-center p-2 rounded-lg hover:bg-[#f8f9fa] transition-colors cursor-pointer group"
-              >
-                <div className="w-11 h-11 rounded-lg bg-[#f3f4f5] border border-[#e1e3e4] flex flex-col items-center justify-center shrink-0 group-hover:border-[#24389c] transition-colors">
-                  <span className="text-[10px] uppercase font-semibold text-[#757684] leading-none">
-                    Hoy
-                  </span>
-                  <span className="text-xs font-bold text-[#191c1d] font-mono leading-none mt-1">
-                    15:30
-                  </span>
-                </div>
-                <div className="flex flex-col min-w-0">
-                  <span className="text-sm font-semibold text-[#191c1d] group-hover:text-[#24389c] transition-colors truncate">
-                    Sofía R. - Tintura
-                  </span>
-                  <span className="text-xs text-[#757684] truncate">Con: Ana S.</span>
-                </div>
-              </li>
-
-              <li
-                onClick={() => onNavigate('calendario')}
-                className="flex gap-3 items-center p-2 rounded-lg hover:bg-[#f8f9fa] transition-colors cursor-pointer group"
-              >
-                <div className="w-11 h-11 rounded-lg bg-[#f3f4f5] border border-[#e1e3e4] flex flex-col items-center justify-center shrink-0 group-hover:border-[#24389c] transition-colors">
-                  <span className="text-[10px] uppercase font-semibold text-[#757684] leading-none">
-                    Hoy
-                  </span>
-                  <span className="text-xs font-bold text-[#191c1d] font-mono leading-none mt-1">
-                    16:45
-                  </span>
-                </div>
-                <div className="flex flex-col min-w-0">
-                  <span className="text-sm font-semibold text-[#191c1d] group-hover:text-[#24389c] transition-colors truncate">
-                    Martín G. - Corte
-                  </span>
-                  <span className="text-xs text-[#757684] truncate">Con: Carlos M.</span>
-                </div>
-              </li>
-
-              <li
-                onClick={() => onNavigate('calendario')}
-                className="flex gap-3 items-center p-2 rounded-lg hover:bg-[#f8f9fa] transition-colors cursor-pointer group"
-              >
-                <div className="w-11 h-11 rounded-lg bg-[#f3f4f5] border border-[#e1e3e4] flex flex-col items-center justify-center shrink-0 group-hover:border-[#24389c] transition-colors">
-                  <span className="text-[10px] uppercase font-semibold text-[#757684] leading-none">
-                    Hoy
-                  </span>
-                  <span className="text-xs font-bold text-[#191c1d] font-mono leading-none mt-1">
-                    17:00
-                  </span>
-                </div>
-                <div className="flex flex-col min-w-0">
-                  <span className="text-sm font-semibold text-[#191c1d] group-hover:text-[#24389c] transition-colors truncate">
-                    Valeria L. - Pedicura
-                  </span>
-                  <span className="text-xs text-[#757684] truncate">Con: Laura G.</span>
-                </div>
-              </li>
-
-              <li
-                onClick={() => onNavigate('calendario')}
-                className="flex gap-3 items-center p-2 rounded-lg hover:bg-[#f8f9fa] transition-colors cursor-pointer group"
-              >
-                <div className="w-11 h-11 rounded-lg bg-[#f3f4f5] border border-[#e1e3e4] flex flex-col items-center justify-center shrink-0 group-hover:border-[#24389c] transition-colors">
-                  <span className="text-[10px] uppercase font-semibold text-[#757684] leading-none">
-                    Mañ
-                  </span>
-                  <span className="text-xs font-bold text-[#191c1d] font-mono leading-none mt-1">
-                    09:00
-                  </span>
-                </div>
-                <div className="flex flex-col min-w-0">
-                  <span className="text-sm font-semibold text-[#191c1d] group-hover:text-[#24389c] transition-colors truncate">
-                    Pedro J. - Masaje
-                  </span>
-                  <span className="text-xs text-[#757684] truncate">Con: Elena R.</span>
-                </div>
-              </li>
-            </ul>
+            {upcomingReservations.length === 0 ? (
+              <div className="py-6 text-center text-xs text-[#757684]">
+                No hay próximas reservas agendadas.
+              </div>
+            ) : (
+              <ul className="flex flex-col gap-3.5">
+                {upcomingReservations.map((res) => (
+                  <li
+                    key={res.id}
+                    onClick={() => onSelectReservation(res)}
+                    className="flex gap-3 items-center p-2 rounded-lg hover:bg-[#f8f9fa] transition-colors cursor-pointer group"
+                  >
+                    <div className="w-11 h-11 rounded-lg bg-[#f3f4f5] border border-[#e1e3e4] flex flex-col items-center justify-center shrink-0 group-hover:border-[#24389c] transition-colors">
+                      <span className="text-[10px] uppercase font-semibold text-[#757684] leading-none">
+                        {res.date === todayStr ? 'Hoy' : res.date.slice(5)}
+                      </span>
+                      <span className="text-xs font-bold text-[#191c1d] font-mono leading-none mt-1">
+                        {res.time}
+                      </span>
+                    </div>
+                    <div className="flex flex-col min-w-0">
+                      <span className="text-sm font-semibold text-[#191c1d] group-hover:text-[#24389c] transition-colors truncate">
+                        {res.clientName} - {res.serviceName}
+                      </span>
+                      <span className="text-xs text-[#757684] truncate">Con: {res.professionalName}</span>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
 
             <button
               onClick={() => onNavigate('calendario')}
@@ -345,28 +314,32 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           {/* Actividad Reciente Timeline Card */}
           <div className="bg-white border border-[#e1e3e4] rounded-xl p-5 shadow-2xs">
             <h3 className="font-semibold text-base text-[#191c1d] mb-4">Actividad reciente</h3>
-            <div className="relative pl-2">
-              {/* Timeline continuous line */}
-              <div className="absolute left-[15px] top-2 bottom-3 w-[1.5px] bg-[#e1e3e4]"></div>
-
-              <ul className="flex flex-col gap-4 relative">
-                {activities.map((act, idx) => (
-                  <li key={act.id} className="flex gap-3.5 items-start relative">
-                    <div
-                      className={`w-2.5 h-2.5 rounded-full mt-1.5 ml-[3px] z-10 ring-4 ring-white ${
-                        idx === 0 ? 'bg-[#24389c]' : 'bg-[#c5c5d4]'
-                      }`}
-                    />
-                    <div className="flex flex-col">
-                      <span className="text-xs sm:text-sm text-[#191c1d] leading-snug">
-                        {act.title}
-                      </span>
-                      <span className="text-[11px] text-[#757684] mt-0.5">{act.timeAgo}</span>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            </div>
+            {activities.length === 0 ? (
+              <div className="py-6 text-center text-xs text-[#757684]">
+                Sin actividad registrada aún.
+              </div>
+            ) : (
+              <div className="relative pl-2">
+                <div className="absolute left-[15px] top-2 bottom-3 w-[1.5px] bg-[#e1e3e4]"></div>
+                <ul className="flex flex-col gap-4 relative">
+                  {activities.slice(0, 5).map((act, idx) => (
+                    <li key={act.id} className="flex gap-3.5 items-start relative">
+                      <div
+                        className={`w-2.5 h-2.5 rounded-full mt-1.5 ml-[3px] z-10 ring-4 ring-white ${
+                          idx === 0 ? 'bg-[#24389c]' : 'bg-[#c5c5d4]'
+                        }`}
+                      />
+                      <div className="flex flex-col">
+                        <span className="text-xs sm:text-sm text-[#191c1d] leading-snug">
+                          {act.title}
+                        </span>
+                        <span className="text-[11px] text-[#757684] mt-0.5">{act.timeAgo}</span>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
         </div>
       </div>

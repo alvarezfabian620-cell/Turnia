@@ -1,5 +1,4 @@
-import React, { useState } from 'react';
-import { TURNIA_LOGO_URL } from '../data/mockData';
+import React from 'react';
 
 interface TurniaLogoProps {
   className?: string;
@@ -12,8 +11,6 @@ export const TurniaLogo: React.FC<TurniaLogoProps> = ({
   showText = true,
   size = 'md',
 }) => {
-  const [imageError, setImageError] = useState(false);
-
   const iconSizes = {
     sm: 'w-7 h-7',
     md: 'w-9 h-9',
@@ -28,28 +25,19 @@ export const TurniaLogo: React.FC<TurniaLogoProps> = ({
 
   return (
     <div className={`flex items-center gap-2.5 ${className}`}>
-      {!imageError ? (
-        <img
-          src={TURNIA_LOGO_URL}
-          alt="TURNIA Logo"
-          className={`${iconSizes[size]} object-contain rounded-md shrink-0`}
-          onError={() => setImageError(true)}
-        />
-      ) : (
-        <div
-          className={`${iconSizes[size]} rounded-full border-2 border-[#24389c] bg-white flex items-center justify-center shrink-0 shadow-xs`}
+      <div
+        className={`${iconSizes[size]} rounded-xl bg-gradient-to-tr from-[#24389c] to-[#4c56af] flex items-center justify-center shrink-0 shadow-xs text-white`}
+      >
+        <svg
+          viewBox="0 0 24 24"
+          className="w-5/6 h-5/6 stroke-current fill-none"
+          strokeWidth="2.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
         >
-          <svg
-            viewBox="0 0 24 24"
-            className="w-4/6 h-4/6 text-[#24389c] stroke-current fill-none"
-            strokeWidth="3"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <polyline points="20 6 9 17 4 12" />
-          </svg>
-        </div>
-      )}
+          <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+        </svg>
+      </div>
 
       {showText && (
         <div className="flex flex-col leading-none">
@@ -58,7 +46,7 @@ export const TurniaLogo: React.FC<TurniaLogoProps> = ({
           >
             TURNIA
           </span>
-          <span className="text-[10px] uppercase font-semibold text-[#454652] tracking-wider mt-0.5">
+          <span className="text-[10px] uppercase font-semibold text-[#757684] tracking-wider mt-0.5">
             SaaS Platform
           </span>
         </div>

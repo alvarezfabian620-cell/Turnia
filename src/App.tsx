@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   ViewMode,
   Reservation,
@@ -10,15 +10,7 @@ import {
   BusinessConfig,
   ReservationStatus,
 } from './types';
-import {
-  INITIAL_SERVICES,
-  INITIAL_PROFESSIONALS,
-  INITIAL_CLIENTS,
-  INITIAL_RESERVATIONS,
-  INITIAL_ACTIVITIES,
-  INITIAL_WEEKLY_SCHEDULE,
-  INITIAL_BUSINESS_CONFIG,
-} from './data/mockData';
+import { api } from './services/api';
 import { Sidebar } from './components/Sidebar';
 import { Header } from './components/Header';
 import { DashboardView } from './components/DashboardView';
@@ -42,15 +34,27 @@ export function App() {
   const [currentView, setCurrentView] = useState<ViewMode>('dashboard');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Main Data States
-  const [reservations, setReservations] = useState<Reservation[]>(INITIAL_RESERVATIONS);
-  const [services, setServices] = useState<ServiceItem[]>(INITIAL_SERVICES);
-  const [professionals, setProfessionals] = useState<Professional[]>(INITIAL_PROFESSIONALS);
-  const [clients, setClients] = useState<ClientItem[]>(INITIAL_CLIENTS);
-  const [activities, setActivities] = useState<ActivityItem[]>(INITIAL_ACTIVITIES);
-  const [schedule, setSchedule] = useState<DaySchedule[]>(INITIAL_WEEKLY_SCHEDULE);
-  const [businessConfig, setBusinessConfig] = useState<BusinessConfig>(INITIAL_BUSINESS_CONFIG);
+  // Main Data States (All from real Backend DB)
+  const [reservations, setReservations] = useState<Reservation[]>([]);
+  const [services, setServices] = useState<ServiceItem[]>([]);
+  const [professionals, setProfessionals] = useState<Professional[]>([]);
+  const [clients, setClients] = useState<ClientItem[]>([]);
+  const [activities, setActivities] = useState<ActivityItem[]>([]);
+  const [schedule, setSchedule] = useState<DaySchedule[]>([]);
+  const [businessConfig, setBusinessConfig] = useState<BusinessConfig>({
+    name: 'Turnia SaaS',
+    category: 'Estética & Bienestar',
+    description: 'Gestión inteligente de reservas',
+    phone: '',
+    email: '',
+    address: '',
+    logoUrl: '',
+    acceptNewBookings: true,
+    showPricesPublicly: true,
+    timeZone: 'America/Bogota',
+  });
 
   // Modals
   const [isNewBookingOpen, setIsNewBookingOpen] = useState(false);
@@ -71,147 +75,174 @@ export function App() {
     setTimeout(() => setToast(null), 4000);
   };
 
-  // Handlers for Reservations
-  const handleCreateReservation = (newResData: Omit<Reservation, 'id' | 'createdAt'>) => {
-    const newId = `res-${Date.now()}`;
-    const newReservation: Reservation = {
-      ...newResData,
-      id: newId,
-      createdAt: new Date().toISOString(),
-    };
-
-    setReservations([newReservation, ...reservations]);
-
-    // Also add to activities
-    const newActivity: ActivityItem = {
-      id: `act-${Date.now()}`,
-      title: `Nueva reserva agendada: ${newResData.clientName} (${newResData.serviceName})`,
-      clientName: newResData.clientName,
-      timeAgo: 'Justo ahora',
-      type: 'new_booking',
-      timestamp: new Date().toISOString(),
-    };
-    setActivities([newActivity, ...activities]);
-
-    // Update client visits or register if not existing
-    const existingClient = clients.find(
-      (c) => c.name.toLowerCase() === newResData.clientName.toLowerCase()
-    );
-    if (existingClient) {
-      setClients(
-        clients.map((c) =>
-          c.id === existingClient.id
-            ? { ...c, totalVisits: c.totalVisits + 1, lastVisit: newResData.date }
-            : c
-        )
-      );
-    } else {
-      setClients([
-        {
-          id: `cli-${Date.now()}`,
-          name: newResData.clientName,
-          phone: newResData.clientPhone || '+34 600 000 000',
-          email: `${newResData.clientName.toLowerCase().replace(/\s+/g, '')}@ejemplo.com`,
-          totalVisits: 1,
-          lastVisit: newResData.date,
-        },
-        ...clients,
+  // Load all data from real backend database
+  const fetchAllData = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      const [
+        resReservations,
+        resServices,
+        resProfessionals,
+        resClients,
+        resActivities,
+        resSchedules,
+        resBusiness,
+      ] = await Promise.all([
+        api.reservations.getAll(),
+        api.services.getAll(),
+        api.professionals.getAll(),
+        api.clients.getAll(),
+        api.activities.getAll(),
+        api.schedules.getAll(),
+        api.business.get(),
       ]);
+
+      setReservations(resReservations);
+      setServices(resServices);
+      setProfessionals(resProfessionals);
+      setClients(resClients);
+      setActivities(resActivities);
+      setSchedule(resSchedules);
+      setBusinessConfig(resBusiness);
+    } catch (err: any) {
+      console.error('Error fetching data from API:', err);
+      showToast('Conectando con el servidor local...', 'info');
+    } finally {
+      setIsLoading(false);
     }
+  }, []);
 
-    showToast(`Reserva para ${newResData.clientName} creada correctamente.`);
+  useEffect(() => {
+    fetchAllData();
+  }, [fetchAllData]);
+
+  // Handlers for Reservations
+  const handleCreateReservation = async (newResData: Omit<Reservation, 'id' | 'createdAt'>) => {
+    try {
+      const created = await api.reservations.create(newResData);
+      setReservations((prev) => [created, ...prev]);
+
+      // Refresh clients and activities
+      const [updatedClients, updatedActivities, updatedProfs] = await Promise.all([
+        api.clients.getAll(),
+        api.activities.getAll(),
+        api.professionals.getAll(),
+      ]);
+      setClients(updatedClients);
+      setActivities(updatedActivities);
+      setProfessionals(updatedProfs);
+
+      showToast(`Reserva para ${created.clientName} creada correctamente.`);
+    } catch (err: any) {
+      console.error('Error creating reservation:', err);
+      showToast(err.message || 'Error al crear la reserva', 'error');
+    }
   };
 
-  const handleUpdateReservationStatus = (id: string, newStatus: ReservationStatus) => {
-    setReservations(
-      reservations.map((r) => (r.id === id ? { ...r, status: newStatus } : r))
-    );
-    showToast(`Estado de la reserva actualizado a "${newStatus}".`);
+  const handleUpdateReservationStatus = async (id: string, newStatus: ReservationStatus) => {
+    try {
+      const updated = await api.reservations.updateStatus(id, newStatus);
+      setReservations((prev) => prev.map((r) => (r.id === id ? updated : r)));
+      const updatedActivities = await api.activities.getAll();
+      setActivities(updatedActivities);
+      showToast(`Estado de la reserva actualizado a "${newStatus}".`);
+    } catch (err: any) {
+      showToast('Error al actualizar estado', 'error');
+    }
   };
 
-  const handleCancelReservation = (reservation: Reservation) => {
-    setReservations(
-      reservations.map((r) => (r.id === reservation.id ? { ...r, status: 'cancelada' } : r))
-    );
-
-    const cancelActivity: ActivityItem = {
-      id: `act-${Date.now()}`,
-      title: `Reserva cancelada por ${reservation.clientName}`,
-      clientName: reservation.clientName,
-      timeAgo: 'Justo ahora',
-      type: 'cancellation',
-      timestamp: new Date().toISOString(),
-    };
-    setActivities([cancelActivity, ...activities]);
-
-    showToast(`Reserva de ${reservation.clientName} ha sido cancelada.`, 'info');
+  const handleCancelReservation = async (reservation: Reservation) => {
+    try {
+      const updated = await api.reservations.updateStatus(reservation.id, 'cancelada');
+      setReservations((prev) => prev.map((r) => (r.id === reservation.id ? updated : r)));
+      const updatedActivities = await api.activities.getAll();
+      setActivities(updatedActivities);
+      showToast(`Reserva de ${reservation.clientName} ha sido cancelada.`, 'info');
+    } catch (err: any) {
+      showToast('Error al cancelar la reserva', 'error');
+    }
   };
 
   // Handlers for Services
-  const handleSaveService = (serviceData: Omit<ServiceItem, 'id'>) => {
-    if (editingService) {
-      setServices(
-        services.map((s) => (s.id === editingService.id ? { ...serviceData, id: s.id } : s))
-      );
-      showToast(`Servicio "${serviceData.name}" actualizado.`);
-      setEditingService(null);
-    } else {
-      const newService: ServiceItem = {
-        ...serviceData,
-        id: `serv-${Date.now()}`,
-      };
-      setServices([...services, newService]);
-      showToast(`Servicio "${serviceData.name}" agregado al catálogo.`);
+  const handleSaveService = async (serviceData: Omit<ServiceItem, 'id'>) => {
+    try {
+      if (editingService) {
+        const updated = await api.services.update(editingService.id, serviceData);
+        setServices((prev) => prev.map((s) => (s.id === editingService.id ? updated : s)));
+        showToast(`Servicio "${serviceData.name}" actualizado.`);
+        setEditingService(null);
+      } else {
+        const created = await api.services.create(serviceData);
+        setServices((prev) => [created, ...prev]);
+        showToast(`Servicio "${serviceData.name}" agregado al catálogo.`);
+      }
+      const updatedActivities = await api.activities.getAll();
+      setActivities(updatedActivities);
+    } catch (err: any) {
+      showToast('Error al guardar el servicio', 'error');
     }
   };
 
-  const handleToggleServiceActive = (serviceId: string) => {
-    setServices(
-      services.map((s) => {
-        if (s.id === serviceId) {
-          const nextState = !s.active;
-          showToast(
-            `Servicio ${nextState ? 'activado' : 'desactivado'} con éxito.`,
-            'info'
-          );
-          return { ...s, active: nextState };
-        }
-        return s;
-      })
-    );
+  const handleToggleServiceActive = async (serviceId: string) => {
+    try {
+      const service = services.find((s) => s.id === serviceId);
+      if (!service) return;
+      const updated = await api.services.update(serviceId, { active: !service.active });
+      setServices((prev) => prev.map((s) => (s.id === serviceId ? updated : s)));
+      showToast(`Servicio ${updated.active ? 'activado' : 'desactivado'} con éxito.`, 'info');
+    } catch (err: any) {
+      showToast('Error al actualizar servicio', 'error');
+    }
   };
 
   // Handlers for Professionals
-  const handleSaveProfessional = (
+  const handleSaveProfessional = async (
     profData: Omit<Professional, 'id' | 'monthlyBookings'>
   ) => {
-    const newProf: Professional = {
-      ...profData,
-      id: `prof-${Date.now()}`,
-      monthlyBookings: 0,
-    };
-    setProfessionals([...professionals, newProf]);
-    showToast(`Profesional "${profData.name}" agregado al equipo.`);
+    try {
+      const created = await api.professionals.create(profData);
+      setProfessionals((prev) => [created, ...prev]);
+      const updatedActivities = await api.activities.getAll();
+      setActivities(updatedActivities);
+      showToast(`Profesional "${profData.name}" agregado al equipo.`);
+    } catch (err: any) {
+      showToast('Error al registrar profesional', 'error');
+    }
   };
 
   // Handlers for Clients
-  const handleAddClient = (clientData: Omit<ClientItem, 'id'>) => {
-    const newClient: ClientItem = {
-      ...clientData,
-      id: `cli-${Date.now()}`,
-    };
-    setClients([newClient, ...clients]);
+  const handleAddClient = async (clientData: Omit<ClientItem, 'id'>) => {
+    try {
+      const created = await api.clients.create(clientData);
+      setClients((prev) => [created, ...prev]);
+      const updatedActivities = await api.activities.getAll();
+      setActivities(updatedActivities);
+      showToast(`Cliente "${clientData.name}" registrado.`);
+    } catch (err: any) {
+      showToast('Error al registrar cliente', 'error');
+    }
+  };
 
-    const newActivity: ActivityItem = {
-      id: `act-${Date.now()}`,
-      title: `Nuevo cliente registrado: ${clientData.name}`,
-      clientName: clientData.name,
-      timeAgo: 'Justo ahora',
-      type: 'new_client',
-      timestamp: new Date().toISOString(),
-    };
-    setActivities([newActivity, ...activities]);
-    showToast(`Cliente "${clientData.name}" registrado.`);
+  // Handlers for Schedule
+  const handleSaveSchedule = async (updatedSchedules: DaySchedule[]) => {
+    try {
+      const saved = await api.schedules.update(updatedSchedules);
+      setSchedule(saved);
+      showToast('Horarios de atención guardados exitosamente.');
+    } catch (err: any) {
+      showToast('Error al guardar horarios', 'error');
+    }
+  };
+
+  // Handlers for Business Config
+  const handleSaveConfig = async (updatedConfig: BusinessConfig) => {
+    try {
+      const saved = await api.business.update(updatedConfig);
+      setBusinessConfig(saved);
+      showToast('Ajustes del negocio guardados correctamente.');
+    } catch (err: any) {
+      showToast('Error al guardar configuración', 'error');
+    }
   };
 
   // Open booking with prefill
@@ -219,6 +250,13 @@ export function App() {
     setBookingPrefill(initial);
     setIsNewBookingOpen(true);
   };
+
+  // Real Dynamic Calculations
+  const now = new Date();
+  const currentMonthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  const monthlyRevenue = reservations
+    .filter((r) => r.status !== 'cancelada' && r.date.startsWith(currentMonthStr))
+    .reduce((sum, r) => sum + (Number(r.price) || 0), 0);
 
   const pendingCount = reservations.filter((r) => r.status === 'pendiente').length;
 
@@ -237,7 +275,7 @@ export function App() {
         onCloseMobile={() => setIsMobileMenuOpen(false)}
       />
 
-      {/* Main Content Layout with 260px left margin on md+ */}
+      {/* Main Content Layout */}
       <div className="md:pl-[260px] flex flex-col min-h-screen flex-1">
         {/* Top Header */}
         <Header
@@ -256,118 +294,123 @@ export function App() {
 
         {/* View Main Content Container */}
         <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto">
-          {currentView === 'dashboard' && (
-            <DashboardView
-              reservations={reservations}
-              activities={activities}
-              clientCount={clients.length + 180}
-              monthlyRevenue={4850000}
-              onNavigate={(v) => {
-                setCurrentView(v);
-                setSearchQuery('');
-              }}
-              onSelectReservation={(r) => setSelectedReservation(r)}
-              onOpenNewBooking={() => handleOpenBookingModal()}
-              searchQuery={searchQuery}
-            />
-          )}
+          {isLoading ? (
+            <div className="flex items-center justify-center py-20 text-[#757684]">
+              <div className="flex flex-col items-center gap-3">
+                <div className="w-8 h-8 border-3 border-[#24389c] border-t-transparent rounded-full animate-spin"></div>
+                <p className="text-sm font-medium">Cargando datos de Turnia...</p>
+              </div>
+            </div>
+          ) : (
+            <>
+              {currentView === 'dashboard' && (
+                <DashboardView
+                  reservations={reservations}
+                  activities={activities}
+                  clientCount={clients.length}
+                  monthlyRevenue={monthlyRevenue}
+                  onNavigate={(v) => {
+                    setCurrentView(v);
+                    setSearchQuery('');
+                  }}
+                  onSelectReservation={(r) => setSelectedReservation(r)}
+                  onOpenNewBooking={() => handleOpenBookingModal()}
+                  searchQuery={searchQuery}
+                />
+              )}
 
-          {currentView === 'reservas' && (
-            <ReservasView
-              reservations={reservations}
-              professionals={professionals}
-              services={services}
-              onOpenNewBooking={() => handleOpenBookingModal()}
-              onSelectReservation={(r) => setSelectedReservation(r)}
-              onEditReservation={(r) => {
-                setSelectedReservation(r);
-              }}
-              onCancelReservation={handleCancelReservation}
-              searchQuery={searchQuery}
-            />
-          )}
+              {currentView === 'reservas' && (
+                <ReservasView
+                  reservations={reservations}
+                  professionals={professionals}
+                  services={services}
+                  onOpenNewBooking={() => handleOpenBookingModal()}
+                  onSelectReservation={(r) => setSelectedReservation(r)}
+                  onEditReservation={(r) => {
+                    setSelectedReservation(r);
+                  }}
+                  onCancelReservation={handleCancelReservation}
+                  searchQuery={searchQuery}
+                />
+              )}
 
-          {currentView === 'calendario' && (
-            <CalendarioView
-              reservations={reservations}
-              professionals={professionals}
-              onOpenNewBooking={handleOpenBookingModal}
-              onSelectReservation={(r) => setSelectedReservation(r)}
-            />
-          )}
+              {currentView === 'calendario' && (
+                <CalendarioView
+                  reservations={reservations}
+                  professionals={professionals}
+                  onOpenNewBooking={handleOpenBookingModal}
+                  onSelectReservation={(r) => setSelectedReservation(r)}
+                />
+              )}
 
-          {currentView === 'clientes' && (
-            <ClientesView
-              clients={clients}
-              onAddClient={handleAddClient}
-              onOpenNewBookingWithClient={(client) =>
-                handleOpenBookingModal({
-                  clientName: client.name,
-                  clientPhone: client.phone,
-                })
-              }
-              searchQuery={searchQuery}
-            />
-          )}
+              {currentView === 'clientes' && (
+                <ClientesView
+                  clients={clients}
+                  onAddClient={handleAddClient}
+                  onOpenNewBookingWithClient={(client) =>
+                    handleOpenBookingModal({
+                      clientName: client.name,
+                      clientPhone: client.phone,
+                    })
+                  }
+                  searchQuery={searchQuery}
+                />
+              )}
 
-          {currentView === 'servicios' && (
-            <ServiciosView
-              services={services}
-              onOpenNewService={() => {
-                setEditingService(null);
-                setIsNewServiceOpen(true);
-              }}
-              onEditService={(service) => {
-                setEditingService(service);
-                setIsNewServiceOpen(true);
-              }}
-              onToggleActive={handleToggleServiceActive}
-              searchQuery={searchQuery}
-            />
-          )}
+              {currentView === 'servicios' && (
+                <ServiciosView
+                  services={services}
+                  onOpenNewService={() => {
+                    setEditingService(null);
+                    setIsNewServiceOpen(true);
+                  }}
+                  onEditService={(service) => {
+                    setEditingService(service);
+                    setIsNewServiceOpen(true);
+                  }}
+                  onToggleActive={handleToggleServiceActive}
+                  searchQuery={searchQuery}
+                />
+              )}
 
-          {currentView === 'profesionales' && (
-            <ProfesionalesView
-              professionals={professionals}
-              onOpenNewProfessional={() => setIsNewProfessionalOpen(true)}
-              onSelectProfessional={(_prof) => {
-                showToast(`Perfil de ${_prof.name} abierto.`, 'info');
-              }}
-              onNavigateToSchedule={() => setCurrentView('horarios')}
-              searchQuery={searchQuery}
-            />
-          )}
+              {currentView === 'profesionales' && (
+                <ProfesionalesView
+                  professionals={professionals}
+                  onOpenNewProfessional={() => setIsNewProfessionalOpen(true)}
+                  onSelectProfessional={(_prof) => {
+                    showToast(`Perfil de ${_prof.name} abierto.`, 'info');
+                  }}
+                  onNavigateToSchedule={() => setCurrentView('horarios')}
+                  searchQuery={searchQuery}
+                />
+              )}
 
-          {currentView === 'horarios' && (
-            <HorariosView
-              schedule={schedule}
-              onSaveSchedule={(updated) => {
-                setSchedule(updated);
-                showToast('Horarios de atención guardados exitosamente.');
-              }}
-              timeZone={businessConfig.timeZone}
-              onChangeTimeZone={(tz) =>
-                setBusinessConfig({ ...businessConfig, timeZone: tz })
-              }
-            />
-          )}
+              {currentView === 'horarios' && (
+                <HorariosView
+                  schedule={schedule}
+                  onSaveSchedule={handleSaveSchedule}
+                  timeZone={businessConfig.timeZone}
+                  onChangeTimeZone={(tz) =>
+                    handleSaveConfig({ ...businessConfig, timeZone: tz })
+                  }
+                />
+              )}
 
-          {currentView === 'reportes' && (
-            <ReportesView
-              professionals={professionals}
-              services={services}
-              monthlyRevenue={4850000}
-            />
-          )}
+              {currentView === 'reportes' && (
+                <ReportesView
+                  professionals={professionals}
+                  services={services}
+                  reservations={reservations}
+                />
+              )}
 
-          {currentView === 'configuracion' && (
-            <ConfiguracionView
-              config={businessConfig}
-              onSaveConfig={(updated) => {
-                setBusinessConfig(updated);
-                showToast('Ajustes del negocio guardados correctamente.');
-              }}
-            />
+              {currentView === 'configuracion' && (
+                <ConfiguracionView
+                  config={businessConfig}
+                  onSaveConfig={handleSaveConfig}
+                />
+              )}
+            </>
           )}
         </main>
       </div>
@@ -412,6 +455,7 @@ export function App() {
         isOpen={isProfileOpen}
         onClose={() => setIsProfileOpen(false)}
         onNavigateToSettings={() => setCurrentView('configuracion')}
+        config={businessConfig}
       />
 
       {/* Toast Notification */}
@@ -425,4 +469,5 @@ export function App() {
     </div>
   );
 }
+
 export default App;

@@ -1,5 +1,4 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { ADMIN_AVATAR_URL } from '../data/mockData';
 import { ActivityItem, ViewMode } from '../types';
 
 interface HeaderProps {

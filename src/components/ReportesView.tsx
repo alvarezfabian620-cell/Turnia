@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   BarChart,
   Bar,
@@ -13,72 +13,189 @@ import {
   Pie,
   Cell,
 } from 'recharts';
-import { Professional, ServiceItem } from '../types';
+import { Professional, ServiceItem, Reservation } from '../types';
+import { api } from '../services/api';
 
 interface ReportesViewProps {
   professionals: Professional[];
   services: ServiceItem[];
-  monthlyRevenue: number;
+  reservations: Reservation[];
 }
 
 export const ReportesView: React.FC<ReportesViewProps> = ({
   professionals,
   services,
-  monthlyRevenue,
+  reservations,
 }) => {
-  const [period, setPeriod] = useState('30_days');
+  const [period, setPeriod] = useState('all');
   const [selectedProf, setSelectedProf] = useState('all');
   const [selectedServ, setSelectedServ] = useState('all');
   const [isExporting, setIsExporting] = useState(false);
 
-  // Mock weekly reservations data
-  const weeklyData = [
-    { week: 'Sem 1', reservas: 32, canceladas: 2 },
-    { week: 'Sem 2', reservas: 45, canceladas: 4 },
-    { week: 'Sem 3', reservas: 38, canceladas: 1 },
-    { week: 'Sem 4', reservas: 52, canceladas: 3 },
-  ];
+  // Filter reservations based on active filters
+  const filteredReservations = useMemo(() => {
+    return reservations.filter((r) => {
+      if (selectedProf !== 'all' && r.professionalId !== selectedProf) return false;
+      if (selectedServ !== 'all' && r.serviceId !== selectedServ) return false;
 
-  // Mock revenue evolution data
-  const revenueData = [
-    { name: 'Sem 1', ingresos: 980000 },
-    { name: 'Sem 2', ingresos: 1350000 },
-    { name: 'Sem 3', ingresos: 1120000 },
-    { name: 'Sem 4', ingresos: 1400000 },
-  ];
+      if (period === 'this_month') {
+        const now = new Date();
+        const currentMonthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+        return r.date.startsWith(currentMonthStr);
+      }
+      if (period === '30_days') {
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        return new Date(r.date) >= thirtyDaysAgo;
+      }
+      return true;
+    });
+  }, [reservations, selectedProf, selectedServ, period]);
 
-  // Top services demand
-  const topServicesData = [
-    { name: 'Corte Clásico', count: 58 },
-    { name: 'Coloración / Tinte', count: 42 },
-    { name: 'Manicura Permanente', count: 35 },
-    { name: 'Limpieza Facial', count: 22 },
-    { name: 'Keratina', count: 18 },
-  ];
+  // Dynamic calculations
+  const totalReservationsCount = filteredReservations.length;
+  const completedReservations = filteredReservations.filter((r) => r.status === 'completada');
+  const nonCancelledReservations = filteredReservations.filter((r) => r.status !== 'cancelada');
 
-  // Status distribution
-  const statusData = [
-    { name: 'Completadas', value: 85, color: '#24389c' },
-    { name: 'Confirmadas', value: 38, color: '#3f51b5' },
-    { name: 'Pendientes', value: 12, color: '#ffdcc6' },
-    { name: 'Canceladas', value: 7, color: '#ba1a1a' },
-  ];
+  const totalRevenue = nonCancelledReservations.reduce(
+    (sum, r) => sum + (Number(r.price) || 0),
+    0
+  );
+
+  const averageTicket =
+    nonCancelledReservations.length > 0
+      ? Math.round(totalRevenue / nonCancelledReservations.length)
+      : 0;
+
+  const attendanceRate =
+    totalReservationsCount > 0
+      ? ((nonCancelledReservations.length / totalReservationsCount) * 100).toFixed(1)
+      : '100.0';
+
+  // Dynamic Weekly Bookings Calculation
+  const weeklyData = useMemo(() => {
+    const weeks = [
+      { week: 'Sem 1', reservas: 0, canceladas: 0 },
+      { week: 'Sem 2', reservas: 0, canceladas: 0 },
+      { week: 'Sem 3', reservas: 0, canceladas: 0 },
+      { week: 'Sem 4', reservas: 0, canceladas: 0 },
+    ];
+
+    filteredReservations.forEach((r) => {
+      const day = parseInt(r.date.split('-')[2], 10) || 1;
+      const weekIndex = Math.min(Math.floor((day - 1) / 7), 3);
+      if (r.status === 'cancelada') {
+        weeks[weekIndex].canceladas += 1;
+      } else {
+        weeks[weekIndex].reservas += 1;
+      }
+    });
+
+    return weeks;
+  }, [filteredReservations]);
+
+  // Dynamic Revenue Evolution Calculation
+  const revenueData = useMemo(() => {
+    const weeks = [
+      { name: 'Sem 1', ingresos: 0 },
+      { name: 'Sem 2', ingresos: 0 },
+      { name: 'Sem 3', ingresos: 0 },
+      { name: 'Sem 4', ingresos: 0 },
+    ];
+
+    nonCancelledReservations.forEach((r) => {
+      const day = parseInt(r.date.split('-')[2], 10) || 1;
+      const weekIndex = Math.min(Math.floor((day - 1) / 7), 3);
+      weeks[weekIndex].ingresos += Number(r.price) || 0;
+    });
+
+    return weeks;
+  }, [nonCancelledReservations]);
+
+  // Top services dynamic demand
+  const topServicesData = useMemo(() => {
+    const countMap = new Map<string, number>();
+    filteredReservations.forEach((r) => {
+      const name = r.serviceName || 'Servicio';
+      countMap.set(name, (countMap.get(name) || 0) + 1);
+    });
+
+    const list = Array.from(countMap.entries())
+      .map(([name, count]) => ({ name, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 5);
+
+    return list;
+  }, [filteredReservations]);
+
+  const maxServiceCount = Math.max(...topServicesData.map((s) => s.count), 1);
+
+  // Status breakdown dynamic
+  const statusData = useMemo(() => {
+    const total = filteredReservations.length || 1;
+    const completadas = filteredReservations.filter((r) => r.status === 'completada').length;
+    const confirmadas = filteredReservations.filter((r) => r.status === 'confirmada').length;
+    const enCurso = filteredReservations.filter((r) => r.status === 'en_curso').length;
+    const pendientes = filteredReservations.filter((r) => r.status === 'pendiente').length;
+    const canceladas = filteredReservations.filter((r) => r.status === 'cancelada').length;
+
+    return [
+      {
+        name: 'Completadas',
+        value: Math.round((completadas / total) * 100),
+        count: completadas,
+        color: '#24389c',
+      },
+      {
+        name: 'Confirmadas',
+        value: Math.round((confirmadas / total) * 100),
+        count: confirmadas,
+        color: '#3f51b5',
+      },
+      {
+        name: 'En curso',
+        value: Math.round((enCurso / total) * 100),
+        count: enCurso,
+        color: '#607d8b',
+      },
+      {
+        name: 'Pendientes',
+        value: Math.round((pendientes / total) * 100),
+        count: pendientes,
+        color: '#f59e0b',
+      },
+      {
+        name: 'Canceladas',
+        value: Math.round((canceladas / total) * 100),
+        count: canceladas,
+        color: '#ba1a1a',
+      },
+    ].filter((s) => s.count > 0 || total === 1);
+  }, [filteredReservations]);
 
   const handleExport = () => {
     setIsExporting(true);
-    setTimeout(() => {
-      setIsExporting(false);
-      // create CSV download simulation
-      const csvContent =
-        'data:text/csv;charset=utf-8,Periodo,Reservas,Ingresos\nSem 1,32,980000\nSem 2,45,1350000\nSem 3,38,1120000\nSem 4,52,1400000';
-      const encodedUri = encodeURI(csvContent);
-      const link = document.createElement('a');
-      link.setAttribute('href', encodedUri);
-      link.setAttribute('download', `reporte_turnia_${period}.csv`);
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    }, 800);
+    const headers = 'ID,Fecha,Hora,Cliente,Telefono,Email,Servicio,Profesional,Precio,Estado,Notas\n';
+    const rows = filteredReservations
+      .map(
+        (r) =>
+          `"${r.id}","${r.date}","${r.time}","${r.clientName}","${r.clientPhone || ''}","${
+            r.clientEmail || ''
+          }","${r.serviceName}","${r.professionalName}","${r.price}","${r.status}","${
+            (r.notes || '').replace(/"/g, '""')
+          }"`
+      )
+      .join('\n');
+
+    const csvContent = 'data:text/csv;charset=utf-8,\uFEFF' + headers + rows;
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `reporte_turnia_${period}_${Date.now()}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    setIsExporting(false);
   };
 
   return (
@@ -90,7 +207,7 @@ export const ReportesView: React.FC<ReportesViewProps> = ({
             Reportes y Métricas
           </h2>
           <p className="text-[#454652] text-sm md:text-base mt-1">
-            Analiza el rendimiento, ingresos y ocupación de tu negocio.
+            Métricas e ingresos calculados en tiempo real según las reservas registradas.
           </p>
         </div>
 
@@ -102,7 +219,7 @@ export const ReportesView: React.FC<ReportesViewProps> = ({
           <span className="material-symbols-outlined text-[20px] text-[#24389c]">
             {isExporting ? 'hourglass_top' : 'download'}
           </span>
-          <span>{isExporting ? 'Generando...' : 'Exportar reporte'}</span>
+          <span>{isExporting ? 'Generando...' : 'Exportar CSV'}</span>
         </button>
       </div>
 
@@ -117,10 +234,9 @@ export const ReportesView: React.FC<ReportesViewProps> = ({
             onChange={(e) => setPeriod(e.target.value)}
             className="w-full border border-[#e1e3e4] rounded-lg px-3 py-2 text-sm text-[#191c1d] bg-white focus:border-[#24389c] outline-none"
           >
+            <option value="all">Todo el historial</option>
             <option value="30_days">Últimos 30 días</option>
             <option value="this_month">Este mes en curso</option>
-            <option value="last_quarter">Último trimestre</option>
-            <option value="year">Año 2023</option>
           </select>
         </div>
 
@@ -168,9 +284,9 @@ export const ReportesView: React.FC<ReportesViewProps> = ({
             Total Reservas
           </span>
           <div className="flex items-baseline justify-between">
-            <span className="text-2xl font-bold text-[#191c1d]">142</span>
-            <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">
-              +12.4%
+            <span className="text-2xl font-bold text-[#191c1d]">{totalReservationsCount}</span>
+            <span className="text-xs font-bold text-[#24389c] bg-[#dee0ff] px-2 py-0.5 rounded-full">
+              Real
             </span>
           </div>
         </div>
@@ -181,10 +297,10 @@ export const ReportesView: React.FC<ReportesViewProps> = ({
           </span>
           <div className="flex items-baseline justify-between">
             <span className="text-2xl font-bold text-[#191c1d]">
-              ${monthlyRevenue.toLocaleString('es-CO')}
+              ${totalRevenue.toLocaleString('es-CO')}
             </span>
             <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">
-              +8.1%
+              Calculado
             </span>
           </div>
         </div>
@@ -194,9 +310,11 @@ export const ReportesView: React.FC<ReportesViewProps> = ({
             Ticket Promedio
           </span>
           <div className="flex items-baseline justify-between">
-            <span className="text-2xl font-bold text-[#191c1d]">$34.150</span>
+            <span className="text-2xl font-bold text-[#191c1d]">
+              ${averageTicket.toLocaleString('es-CO')}
+            </span>
             <span className="text-xs font-bold text-[#24389c] bg-[#dee0ff] px-2 py-0.5 rounded-full">
-              +3.2%
+              Promedio
             </span>
           </div>
         </div>
@@ -206,9 +324,9 @@ export const ReportesView: React.FC<ReportesViewProps> = ({
             Tasa de Asistencia
           </span>
           <div className="flex items-baseline justify-between">
-            <span className="text-2xl font-bold text-[#191c1d]">94.8%</span>
+            <span className="text-2xl font-bold text-[#191c1d]">{attendanceRate}%</span>
             <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">
-              +1.5%
+              Efectividad
             </span>
           </div>
         </div>
@@ -220,14 +338,14 @@ export const ReportesView: React.FC<ReportesViewProps> = ({
         <div className="bg-white border border-[#e1e3e4] rounded-xl p-5 shadow-2xs">
           <div className="flex justify-between items-center mb-4">
             <h3 className="font-bold text-base text-[#191c1d]">Reservas por Semana</h3>
-            <span className="text-xs text-[#757684]">Últimas 4 semanas</span>
+            <span className="text-xs text-[#757684]">Distribución semanal</span>
           </div>
           <div className="h-64 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={weeklyData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f5" />
                 <XAxis dataKey="week" stroke="#757684" fontSize={12} tickLine={false} />
-                <YAxis stroke="#757684" fontSize={12} tickLine={false} />
+                <YAxis stroke="#757684" fontSize={12} tickLine={false} allowDecimals={false} />
                 <Tooltip
                   contentStyle={{
                     backgroundColor: '#ffffff',
@@ -247,7 +365,7 @@ export const ReportesView: React.FC<ReportesViewProps> = ({
         <div className="bg-white border border-[#e1e3e4] rounded-xl p-5 shadow-2xs">
           <div className="flex justify-between items-center mb-4">
             <h3 className="font-bold text-base text-[#191c1d]">Evolución de Ingresos</h3>
-            <span className="text-xs text-[#757684]">COP mensual</span>
+            <span className="text-xs text-[#757684]">Ingresos reales acumulados</span>
           </div>
           <div className="h-64 w-full">
             <ResponsiveContainer width="100%" height="100%">
@@ -264,7 +382,7 @@ export const ReportesView: React.FC<ReportesViewProps> = ({
                   stroke="#757684"
                   fontSize={12}
                   tickLine={false}
-                  tickFormatter={(val) => `$${val / 1000}k`}
+                  tickFormatter={(val) => `$${val.toLocaleString('es-CO')}`}
                 />
                 <Tooltip
                   formatter={(value: number) => [`$${value.toLocaleString('es-CO')}`, 'Ingresos']}
@@ -293,24 +411,30 @@ export const ReportesView: React.FC<ReportesViewProps> = ({
           <h3 className="font-bold text-base text-[#191c1d] mb-4">
             Servicios con Mayor Demanda
           </h3>
-          <div className="space-y-3.5">
-            {topServicesData.map((item, idx) => (
-              <div key={item.name} className="space-y-1">
-                <div className="flex justify-between text-xs font-semibold text-[#191c1d]">
-                  <span>
-                    {idx + 1}. {item.name}
-                  </span>
-                  <span className="text-[#24389c]">{item.count} citas</span>
+          {topServicesData.length === 0 ? (
+            <div className="py-12 text-center text-[#757684] text-sm">
+              No hay reservas registradas en este periodo.
+            </div>
+          ) : (
+            <div className="space-y-3.5">
+              {topServicesData.map((item, idx) => (
+                <div key={item.name} className="space-y-1">
+                  <div className="flex justify-between text-xs font-semibold text-[#191c1d]">
+                    <span>
+                      {idx + 1}. {item.name}
+                    </span>
+                    <span className="text-[#24389c]">{item.count} citas</span>
+                  </div>
+                  <div className="w-full bg-[#f3f4f5] h-2 rounded-full overflow-hidden">
+                    <div
+                      className="bg-[#24389c] h-full rounded-full transition-all duration-500"
+                      style={{ width: `${(item.count / maxServiceCount) * 100}%` }}
+                    />
+                  </div>
                 </div>
-                <div className="w-full bg-[#f3f4f5] h-2 rounded-full overflow-hidden">
-                  <div
-                    className="bg-[#24389c] h-full rounded-full transition-all duration-500"
-                    style={{ width: `${(item.count / 60) * 100}%` }}
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Chart 4: Distribución por Estado */}
@@ -318,49 +442,57 @@ export const ReportesView: React.FC<ReportesViewProps> = ({
           <h3 className="font-bold text-base text-[#191c1d] mb-2">
             Distribución por Estado de Cita
           </h3>
-          <div className="flex-1 flex flex-col sm:flex-row items-center justify-center gap-6">
-            <div className="w-44 h-44 shrink-0">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={statusData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={45}
-                    outerRadius={65}
-                    paddingAngle={3}
-                    dataKey="value"
-                  >
-                    {statusData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip
-                    formatter={(val: number) => [`${val} citas`, 'Cantidad']}
-                    contentStyle={{
-                      backgroundColor: '#ffffff',
-                      borderColor: '#e1e3e4',
-                      borderRadius: '8px',
-                      fontSize: '12px',
-                    }}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
+          {filteredReservations.length === 0 ? (
+            <div className="flex-1 flex items-center justify-center text-[#757684] text-sm py-12">
+              Sin datos de citas para mostrar.
             </div>
+          ) : (
+            <div className="flex-1 flex flex-col sm:flex-row items-center justify-center gap-6">
+              <div className="w-44 h-44 shrink-0">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={statusData}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={45}
+                      outerRadius={65}
+                      paddingAngle={3}
+                      dataKey="value"
+                    >
+                      {statusData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      formatter={(val: number) => [`${val}%`, 'Porcentaje']}
+                      contentStyle={{
+                        backgroundColor: '#ffffff',
+                        borderColor: '#e1e3e4',
+                        borderRadius: '8px',
+                        fontSize: '12px',
+                      }}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
 
-            <div className="space-y-2 text-xs">
-              {statusData.map((item) => (
-                <div key={item.name} className="flex items-center gap-2.5">
-                  <span
-                    className="w-3 h-3 rounded-full shrink-0"
-                    style={{ backgroundColor: item.color }}
-                  />
-                  <span className="text-[#454652]">{item.name}</span>
-                  <span className="font-bold text-[#191c1d] ml-auto">{item.value}%</span>
-                </div>
-              ))}
+              <div className="space-y-2 text-xs">
+                {statusData.map((item) => (
+                  <div key={item.name} className="flex items-center gap-2.5">
+                    <span
+                      className="w-3 h-3 rounded-full shrink-0"
+                      style={{ backgroundColor: item.color }}
+                    />
+                    <span className="text-[#454652]">{item.name}</span>
+                    <span className="font-bold text-[#191c1d] ml-auto">
+                      {item.count} ({item.value}%)
+                    </span>
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
     </div>

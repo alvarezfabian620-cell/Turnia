@@ -1,0 +1,177 @@
+{
+  "businessConfig": {
+    "name": "Turnia Negocio & Reservas",
+    "category": "Estética & Bienestar",
+    "description": "Gestión inteligente de reservas y turnos.",
+    "phone": "+57 300 000 0000",
+    "email": "contacto@turnia.app",
+    "address": "Calle Principal #10-20",
+    "logoUrl": "",
+    "acceptNewBookings": true,
+    "showPricesPublicly": true,
+    "timeZone": "America/Bogota"
+  },
+  "services": [
+    {
+      "price": 35000,
+      "durationMinutes": 45,
+      "description": "Corte profesional unisex",
+      "name": "Corte & Estilo",
+      "category": "Peluquer�a",
+      "id": "srv-1788207719767",
+      "active": true
+    }
+  ],
+  "professionals": [],
+  "clients": [],
+  "reservations": [],
+  "schedules": [
+    {
+      "dayName": "LUNES",
+      "dayCode": 1,
+      "active": true,
+      "blocks": [
+        {
+          "id": "b-1",
+          "start": "09:00",
+          "end": "13:00"
+        },
+        {
+          "id": "b-2",
+          "start": "13:00",
+          "end": "14:00",
+          "isBreak": true,
+          "label": "Almuerzo"
+        },
+        {
+          "id": "b-3",
+          "start": "14:00",
+          "end": "19:00"
+        }
+      ]
+    },
+    {
+      "dayName": "MARTES",
+      "dayCode": 2,
+      "active": true,
+      "blocks": [
+        {
+          "id": "b-4",
+          "start": "09:00",
+          "end": "13:00"
+        },
+        {
+          "id": "b-5",
+          "start": "13:00",
+          "end": "14:00",
+          "isBreak": true,
+          "label": "Almuerzo"
+        },
+        {
+          "id": "b-6",
+          "start": "14:00",
+          "end": "19:00"
+        }
+      ]
+    },
+    {
+      "dayName": "MIÉRCOLES",
+      "dayCode": 3,
+      "active": true,
+      "blocks": [
+        {
+          "id": "b-7",
+          "start": "09:00",
+          "end": "13:00"
+        },
+        {
+          "id": "b-8",
+          "start": "13:00",
+          "end": "14:00",
+          "isBreak": true,
+          "label": "Almuerzo"
+        },
+        {
+          "id": "b-9",
+          "start": "14:00",
+          "end": "19:00"
+        }
+      ]
+    },
+    {
+      "dayName": "JUEVES",
+      "dayCode": 4,
+      "active": true,
+      "blocks": [
+        {
+          "id": "b-10",
+          "start": "09:00",
+          "end": "13:00"
+        },
+        {
+          "id": "b-11",
+          "start": "13:00",
+          "end": "14:00",
+          "isBreak": true,
+          "label": "Almuerzo"
+        },
+        {
+          "id": "b-12",
+          "start": "14:00",
+          "end": "19:00"
+        }
+      ]
+    },
+    {
+      "dayName": "VIERNES",
+      "dayCode": 5,
+      "active": true,
+      "blocks": [
+        {
+          "id": "b-13",
+          "start": "09:00",
+          "end": "13:00"
+        },
+        {
+          "id": "b-14",
+          "start": "13:00",
+          "end": "14:00",
+          "isBreak": true,
+          "label": "Almuerzo"
+        },
+        {
+          "id": "b-15",
+          "start": "14:00",
+          "end": "20:00"
+        }
+      ]
+    },
+    {
+      "dayName": "SÁBADO",
+      "dayCode": 6,
+      "active": true,
+      "blocks": [
+        {
+          "id": "b-16",
+          "start": "09:00",
+          "end": "15:00"
+        }
+      ]
+    },
+    {
+      "dayName": "DOMINGO",
+      "dayCode": 7,
+      "active": false,
+      "blocks": []
+    }
+  ],
+  "activities": [
+    {
+      "id": "act-1788207719768",
+      "title": "Nuevo servicio creado: Corte & Estilo ($35000)",
+      "timeAgo": "Justo ahora",
+      "type": "new_booking",
+      "timestamp": "2026-08-31T20:21:59.769Z"
+    }
+  ]
+}
