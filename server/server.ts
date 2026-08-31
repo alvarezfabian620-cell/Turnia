@@ -1,5 +1,6 @@
 import express from 'express';
 import cors from 'cors';
+import { initDatabase } from './db.js';
 import { businessRouter } from './routes/business.js';
 import { servicesRouter } from './routes/services.js';
 import { professionalsRouter } from './routes/professionals.js';
@@ -16,12 +17,6 @@ const PORT = process.env.PORT || 3001;
 app.use(cors());
 app.use(express.json());
 
-// Request logger for dev
-app.use((req, res, next) => {
-  console.log(`[API] ${req.method} ${req.url}`);
-  next();
-});
-
 // API Routes
 app.use('/api/business', businessRouter);
 app.use('/api/services', servicesRouter);
@@ -34,7 +29,7 @@ app.use('/api/reports', reportsRouter);
 
 // Health check
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+  res.json({ status: 'ok', database: 'MySQL XAMPP', timestamp: new Date().toISOString() });
 });
 
 // Error handling
@@ -43,6 +38,17 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
   res.status(500).json({ error: 'Internal Server Error', message: err?.message || 'Error desconocido' });
 });
 
-app.listen(PORT, () => {
-  console.log(`🚀 Servidor Backend de Turnia corriendo en http://localhost:${PORT}`);
-});
+async function startServer() {
+  try {
+    console.log('🔄 Conectando e inicializando MySQL (XAMPP)...');
+    await initDatabase();
+    app.listen(PORT, () => {
+      console.log(`🚀 Servidor Backend de Turnia corriendo en http://localhost:${PORT} con MySQL (XAMPP)`);
+    });
+  } catch (err: any) {
+    console.error('❌ Error fatal al iniciar el backend / MySQL:', err.message);
+    process.exit(1);
+  }
+}
+
+startServer();

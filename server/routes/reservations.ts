@@ -1,178 +1,286 @@
 import { Router, Request, Response } from 'express';
-import { db, Reservation, ActivityItem, ClientItem, Professional } from '../db.js';
+import { getPool, Reservation } from '../db.js';
 
 export const reservationsRouter = Router();
 
 // GET /api/reservations
-reservationsRouter.get('/', (req: Request, res: Response) => {
-  const reservations = db.get('reservations');
-  const { date, status, professionalId, serviceId } = req.query;
+reservationsRouter.get('/', async (req: Request, res: Response) => {
+  try {
+    const pool = getPool();
+    const { date, status, professionalId, serviceId } = req.query;
 
-  let filtered = [...reservations];
-  if (date) {
-    filtered = filtered.filter((r) => r.date === date);
-  }
-  if (status) {
-    filtered = filtered.filter((r) => r.status === status);
-  }
-  if (professionalId) {
-    filtered = filtered.filter((r) => r.professionalId === professionalId);
-  }
-  if (serviceId) {
-    filtered = filtered.filter((r) => r.serviceId === serviceId);
-  }
+    let query = 'SELECT * FROM reservations WHERE 1=1';
+    const params: any[] = [];
 
-  res.json(filtered);
+    if (date) {
+      query += ' AND date = ?';
+      params.push(date);
+    }
+    if (status) {
+      query += ' AND status = ?';
+      params.push(status);
+    }
+    if (professionalId) {
+      query += ' AND professional_id = ?';
+      params.push(professionalId);
+    }
+    if (serviceId) {
+      query += ' AND service_id = ?';
+      params.push(serviceId);
+    }
+
+    query += ' ORDER BY date DESC, time ASC';
+
+    const [rows]: any = await pool.query(query, params);
+    const reservations: Reservation[] = rows.map((r: any) => ({
+      id: r.id,
+      clientName: r.client_name,
+      clientPhone: r.client_phone || '',
+      clientEmail: r.client_email || '',
+      serviceId: r.service_id,
+      serviceName: r.service_name,
+      professionalId: r.professional_id,
+      professionalName: r.professional_name,
+      date: r.date,
+      time: r.time,
+      endTime: r.end_time || '',
+      durationMinutes: r.duration_minutes,
+      price: Number(r.price),
+      status: r.status,
+      notes: r.notes || '',
+      createdAt: r.created_at,
+    }));
+
+    res.json(reservations);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // POST /api/reservations
-reservationsRouter.post('/', (req: Request, res: Response) => {
-  const reservations = db.get('reservations');
-  const newReservation: Reservation = {
-    ...req.body,
-    id: req.body.id || `res-${Date.now()}`,
-    createdAt: new Date().toISOString(),
-    status: req.body.status || 'confirmada',
-  };
-
-  const updatedReservations = [newReservation, ...reservations];
-  db.set('reservations', updatedReservations);
-
-  // Sync client profile
-  const clients = db.get('clients');
-  const existingClient = clients.find(
-    (c) => c.name.toLowerCase() === newReservation.clientName.toLowerCase()
-  );
-
-  if (existingClient) {
-    const updatedClients = clients.map((c) =>
-      c.id === existingClient.id
-        ? {
-            ...c,
-            totalVisits: c.totalVisits + 1,
-            lastVisit: newReservation.date,
-            phone: newReservation.clientPhone || c.phone,
-            email: newReservation.clientEmail || c.email,
-          }
-        : c
-    );
-    db.set('clients', updatedClients);
-  } else {
-    const newClient: ClientItem = {
-      id: `cli-${Date.now()}`,
-      name: newReservation.clientName,
-      phone: newReservation.clientPhone || '',
-      email: newReservation.clientEmail || '',
-      totalVisits: 1,
-      lastVisit: newReservation.date,
+reservationsRouter.post('/', async (req: Request, res: Response) => {
+  try {
+    const pool = getPool();
+    const id = req.body.id || `res-${Date.now()}`;
+    const newRes: Reservation = {
+      id,
+      clientName: req.body.clientName,
+      clientPhone: req.body.clientPhone || '',
+      clientEmail: req.body.clientEmail || '',
+      serviceId: req.body.serviceId,
+      serviceName: req.body.serviceName,
+      professionalId: req.body.professionalId,
+      professionalName: req.body.professionalName,
+      date: req.body.date,
+      time: req.body.time,
+      endTime: req.body.endTime || '',
+      durationMinutes: Number(req.body.durationMinutes) || 30,
+      price: Number(req.body.price) || 0,
+      status: req.body.status || 'confirmada',
+      notes: req.body.notes || '',
+      createdAt: new Date().toISOString(),
     };
-    db.set('clients', [newClient, ...clients]);
+
+    await pool.query(
+      `INSERT INTO reservations 
+        (id, client_name, client_phone, client_email, service_id, service_name, professional_id, professional_name, date, time, end_time, duration_minutes, price, status, notes, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        newRes.id,
+        newRes.clientName,
+        newRes.clientPhone,
+        newRes.clientEmail,
+        newRes.serviceId,
+        newRes.serviceName,
+        newRes.professionalId,
+        newRes.professionalName,
+        newRes.date,
+        newRes.time,
+        newRes.endTime,
+        newRes.durationMinutes,
+        newRes.price,
+        newRes.status,
+        newRes.notes,
+        newRes.createdAt,
+      ]
+    );
+
+    // Sync client profile
+    const [clientRows]: any = await pool.query('SELECT * FROM clients WHERE LOWER(name) = LOWER(?)', [newRes.clientName]);
+    if (clientRows.length > 0) {
+      const client = clientRows[0];
+      await pool.query(
+        'UPDATE clients SET total_visits = total_visits + 1, last_visit = ?, phone = COALESCE(NULLIF(?, ""), phone), email = COALESCE(NULLIF(?, ""), email) WHERE id = ?',
+        [newRes.date, newRes.clientPhone, newRes.clientEmail, client.id]
+      );
+    } else {
+      await pool.query(
+        'INSERT INTO clients (id, name, phone, email, total_visits, last_visit, notes) VALUES (?, ?, ?, ?, 1, ?, ?)',
+        [`cli-${Date.now()}`, newRes.clientName, newRes.clientPhone, newRes.clientEmail, newRes.date, '']
+      );
+    }
+
+    // Update professional bookings count
+    await pool.query(
+      'UPDATE professionals SET monthly_bookings = monthly_bookings + 1 WHERE id = ? OR name = ?',
+      [newRes.professionalId, newRes.professionalName]
+    );
+
+    // Audit activity
+    await pool.query(
+      `INSERT INTO activities (id, title, client_name, time_ago, type, amount, timestamp)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [
+        `act-${Date.now()}`,
+        `Nueva reserva agendada: ${newRes.clientName} (${newRes.serviceName})`,
+        newRes.clientName,
+        'Justo ahora',
+        'new_booking',
+        newRes.price,
+        new Date().toISOString(),
+      ]
+    );
+
+    res.status(201).json(newRes);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
   }
-
-  // Update professional monthly bookings count
-  const professionals = db.get('professionals');
-  const updatedProfs = professionals.map((p) =>
-    p.id === newReservation.professionalId || p.name === newReservation.professionalName
-      ? { ...p, monthlyBookings: (p.monthlyBookings || 0) + 1 }
-      : p
-  );
-  db.set('professionals', updatedProfs);
-
-  // Add audit activity
-  const activities = db.get('activities');
-  const newActivity: ActivityItem = {
-    id: `act-${Date.now()}`,
-    title: `Nueva reserva agendada: ${newReservation.clientName} (${newReservation.serviceName})`,
-    clientName: newReservation.clientName,
-    timeAgo: 'Justo ahora',
-    type: 'new_booking',
-    amount: newReservation.price,
-    timestamp: new Date().toISOString(),
-  };
-  db.set('activities', [newActivity, ...activities.slice(0, 49)]);
-
-  res.status(201).json(newReservation);
 });
 
 // PUT /api/reservations/:id
-reservationsRouter.put('/:id', (req: Request, res: Response) => {
-  const { id } = req.params;
-  const reservations = db.get('reservations');
-  const index = reservations.findIndex((r) => r.id === id);
+reservationsRouter.put('/:id', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const pool = getPool();
 
-  if (index === -1) {
-    return res.status(404).json({ error: 'Reserva no encontrada' });
-  }
+    const [rows]: any = await pool.query('SELECT * FROM reservations WHERE id = ?', [id]);
+    if (rows.length === 0) {
+      return res.status(404).json({ error: 'Reserva no encontrada' });
+    }
 
-  const prevRes = reservations[index];
-  const updatedReservation: Reservation = {
-    ...prevRes,
-    ...req.body,
-    id,
-  };
+    const current = rows[0];
+    const clientName = req.body.clientName ?? current.client_name;
+    const clientPhone = req.body.clientPhone ?? current.client_phone;
+    const clientEmail = req.body.clientEmail ?? current.client_email;
+    const serviceId = req.body.serviceId ?? current.service_id;
+    const serviceName = req.body.serviceName ?? current.service_name;
+    const professionalId = req.body.professionalId ?? current.professional_id;
+    const professionalName = req.body.professionalName ?? current.professional_name;
+    const date = req.body.date ?? current.date;
+    const time = req.body.time ?? current.time;
+    const endTime = req.body.endTime ?? current.end_time;
+    const durationMinutes = req.body.durationMinutes ?? current.duration_minutes;
+    const price = req.body.price ?? current.price;
+    const status = req.body.status ?? current.status;
+    const notes = req.body.notes ?? current.notes;
 
-  reservations[index] = updatedReservation;
-  db.set('reservations', [...reservations]);
+    await pool.query(
+      `UPDATE reservations SET 
+        client_name = ?, client_phone = ?, client_email = ?, service_id = ?, service_name = ?,
+        professional_id = ?, professional_name = ?, date = ?, time = ?, end_time = ?,
+        duration_minutes = ?, price = ?, status = ?, notes = ?
+       WHERE id = ?`,
+      [
+        clientName, clientPhone, clientEmail, serviceId, serviceName,
+        professionalId, professionalName, date, time, endTime,
+        durationMinutes, price, status, notes, id
+      ]
+    );
 
-  // If status changed to cancelada
-  if (prevRes.status !== 'cancelada' && updatedReservation.status === 'cancelada') {
-    const activities = db.get('activities');
-    const newActivity: ActivityItem = {
-      id: `act-${Date.now()}`,
-      title: `Reserva cancelada: ${updatedReservation.clientName} (${updatedReservation.serviceName})`,
-      clientName: updatedReservation.clientName,
-      timeAgo: 'Justo ahora',
-      type: 'cancellation',
-      timestamp: new Date().toISOString(),
+    const updatedRes: Reservation = {
+      id,
+      clientName,
+      clientPhone,
+      clientEmail,
+      serviceId,
+      serviceName,
+      professionalId,
+      professionalName,
+      date,
+      time,
+      endTime,
+      durationMinutes,
+      price: Number(price),
+      status,
+      notes,
+      createdAt: current.created_at,
     };
-    db.set('activities', [newActivity, ...activities.slice(0, 49)]);
-  }
 
-  res.json(updatedReservation);
+    res.json(updatedRes);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // PATCH /api/reservations/:id/status
-reservationsRouter.patch('/:id/status', (req: Request, res: Response) => {
-  const { id } = req.params;
-  const { status } = req.body;
-  const reservations = db.get('reservations');
-  const index = reservations.findIndex((r) => r.id === id);
+reservationsRouter.patch('/:id/status', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+    const pool = getPool();
 
-  if (index === -1) {
-    return res.status(404).json({ error: 'Reserva no encontrada' });
-  }
+    const [rows]: any = await pool.query('SELECT * FROM reservations WHERE id = ?', [id]);
+    if (rows.length === 0) {
+      return res.status(404).json({ error: 'Reserva no encontrada' });
+    }
 
-  const reservation = reservations[index];
-  reservation.status = status;
-  reservations[index] = reservation;
-  db.set('reservations', [...reservations]);
+    const current = rows[0];
+    await pool.query('UPDATE reservations SET status = ? WHERE id = ?', [status, id]);
 
-  if (status === 'cancelada') {
-    const activities = db.get('activities');
-    const newActivity: ActivityItem = {
-      id: `act-${Date.now()}`,
-      title: `Reserva cancelada: ${reservation.clientName}`,
-      clientName: reservation.clientName,
-      timeAgo: 'Justo ahora',
-      type: 'cancellation',
-      timestamp: new Date().toISOString(),
+    if (status === 'cancelada') {
+      await pool.query(
+        `INSERT INTO activities (id, title, client_name, time_ago, type, amount, timestamp)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [
+          `act-${Date.now()}`,
+          `Reserva cancelada: ${current.client_name}`,
+          current.client_name,
+          'Justo ahora',
+          'cancellation',
+          null,
+          new Date().toISOString(),
+        ]
+      );
+    }
+
+    const updatedRes: Reservation = {
+      id,
+      clientName: current.client_name,
+      clientPhone: current.client_phone,
+      clientEmail: current.client_email,
+      serviceId: current.service_id,
+      serviceName: current.service_name,
+      professionalId: current.professional_id,
+      professionalName: current.professional_name,
+      date: current.date,
+      time: current.time,
+      endTime: current.end_time,
+      durationMinutes: current.duration_minutes,
+      price: Number(current.price),
+      status,
+      notes: current.notes,
+      createdAt: current.created_at,
     };
-    db.set('activities', [newActivity, ...activities.slice(0, 49)]);
-  }
 
-  res.json(reservation);
+    res.json(updatedRes);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // DELETE /api/reservations/:id
-reservationsRouter.delete('/:id', (req: Request, res: Response) => {
-  const { id } = req.params;
-  const reservations = db.get('reservations');
-  const filtered = reservations.filter((r) => r.id !== id);
+reservationsRouter.delete('/:id', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const pool = getPool();
+    const [result]: any = await pool.query('DELETE FROM reservations WHERE id = ?', [id]);
 
-  if (filtered.length === reservations.length) {
-    return res.status(404).json({ error: 'Reserva no encontrada' });
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: 'Reserva no encontrada' });
+    }
+
+    res.json({ success: true, id });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
   }
-
-  db.set('reservations', filtered);
-  res.json({ success: true, id });
 });

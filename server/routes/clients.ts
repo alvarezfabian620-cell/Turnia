@@ -1,72 +1,132 @@
 import { Router, Request, Response } from 'express';
-import { db, ClientItem, ActivityItem } from '../db.js';
+import { getPool, ClientItem } from '../db.js';
 
 export const clientsRouter = Router();
 
 // GET /api/clients
-clientsRouter.get('/', (req: Request, res: Response) => {
-  const clients = db.get('clients');
-  res.json(clients);
+clientsRouter.get('/', async (req: Request, res: Response) => {
+  try {
+    const pool = getPool();
+    const [rows]: any = await pool.query('SELECT * FROM clients ORDER BY name ASC');
+    const clients: ClientItem[] = rows.map((r: any) => ({
+      id: r.id,
+      name: r.name,
+      phone: r.phone || '',
+      email: r.email || '',
+      totalVisits: r.total_visits || 0,
+      lastVisit: r.last_visit || '',
+      notes: r.notes || '',
+    }));
+    res.json(clients);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // POST /api/clients
-clientsRouter.post('/', (req: Request, res: Response) => {
-  const clients = db.get('clients');
-  const newClient: ClientItem = {
-    ...req.body,
-    id: req.body.id || `cli-${Date.now()}`,
-    totalVisits: req.body.totalVisits || 0,
-    lastVisit: req.body.lastVisit || new Date().toISOString().split('T')[0],
-  };
+clientsRouter.post('/', async (req: Request, res: Response) => {
+  try {
+    const pool = getPool();
+    const id = req.body.id || `cli-${Date.now()}`;
+    const newClient: ClientItem = {
+      id,
+      name: req.body.name,
+      phone: req.body.phone || '',
+      email: req.body.email || '',
+      totalVisits: req.body.totalVisits || 0,
+      lastVisit: req.body.lastVisit || new Date().toISOString().split('T')[0],
+      notes: req.body.notes || '',
+    };
 
-  const updated = [newClient, ...clients];
-  db.set('clients', updated);
+    await pool.query(
+      `INSERT INTO clients (id, name, phone, email, total_visits, last_visit, notes)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [
+        newClient.id,
+        newClient.name,
+        newClient.phone,
+        newClient.email,
+        newClient.totalVisits,
+        newClient.lastVisit,
+        newClient.notes,
+      ]
+    );
 
-  const activities = db.get('activities');
-  const newActivity: ActivityItem = {
-    id: `act-${Date.now()}`,
-    title: `Nuevo cliente registrado: ${newClient.name}`,
-    timeAgo: 'Justo ahora',
-    type: 'new_client',
-    timestamp: new Date().toISOString(),
-  };
-  db.set('activities', [newActivity, ...activities.slice(0, 49)]);
+    // Audit activity
+    await pool.query(
+      `INSERT INTO activities (id, title, client_name, time_ago, type, amount, timestamp)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [
+        `act-${Date.now()}`,
+        `Nuevo cliente registrado: ${newClient.name}`,
+        newClient.name,
+        'Justo ahora',
+        'new_client',
+        null,
+        new Date().toISOString(),
+      ]
+    );
 
-  res.status(201).json(newClient);
+    res.status(201).json(newClient);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // PUT /api/clients/:id
-clientsRouter.put('/:id', (req: Request, res: Response) => {
-  const { id } = req.params;
-  const clients = db.get('clients');
-  const index = clients.findIndex((c) => c.id === id);
+clientsRouter.put('/:id', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const pool = getPool();
 
-  if (index === -1) {
-    return res.status(404).json({ error: 'Cliente no encontrado' });
+    const [rows]: any = await pool.query('SELECT * FROM clients WHERE id = ?', [id]);
+    if (rows.length === 0) {
+      return res.status(404).json({ error: 'Cliente no encontrado' });
+    }
+
+    const current = rows[0];
+    const name = req.body.name !== undefined ? req.body.name : current.name;
+    const phone = req.body.phone !== undefined ? req.body.phone : current.phone;
+    const email = req.body.email !== undefined ? req.body.email : current.email;
+    const totalVisits = req.body.totalVisits !== undefined ? req.body.totalVisits : current.total_visits;
+    const lastVisit = req.body.lastVisit !== undefined ? req.body.lastVisit : current.last_visit;
+    const notes = req.body.notes !== undefined ? req.body.notes : current.notes;
+
+    await pool.query(
+      `UPDATE clients SET name = ?, phone = ?, email = ?, total_visits = ?, last_visit = ?, notes = ?
+       WHERE id = ?`,
+      [name, phone, email, totalVisits, lastVisit, notes, id]
+    );
+
+    const updatedClient: ClientItem = {
+      id,
+      name,
+      phone,
+      email,
+      totalVisits,
+      lastVisit,
+      notes,
+    };
+
+    res.json(updatedClient);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
   }
-
-  const updatedClient: ClientItem = {
-    ...clients[index],
-    ...req.body,
-    id,
-  };
-
-  clients[index] = updatedClient;
-  db.set('clients', [...clients]);
-
-  res.json(updatedClient);
 });
 
 // DELETE /api/clients/:id
-clientsRouter.delete('/:id', (req: Request, res: Response) => {
-  const { id } = req.params;
-  const clients = db.get('clients');
-  const filtered = clients.filter((c) => c.id !== id);
+clientsRouter.delete('/:id', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const pool = getPool();
+    const [result]: any = await pool.query('DELETE FROM clients WHERE id = ?', [id]);
 
-  if (filtered.length === clients.length) {
-    return res.status(404).json({ error: 'Cliente no encontrado' });
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: 'Cliente no encontrado' });
+    }
+
+    res.json({ success: true, id });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
   }
-
-  db.set('clients', filtered);
-  res.json({ success: true, id });
 });

@@ -1,28 +1,57 @@
 import { Router, Request, Response } from 'express';
-import { db, DaySchedule, ActivityItem } from '../db.js';
+import { getPool, DaySchedule } from '../db.js';
 
 export const schedulesRouter = Router();
 
 // GET /api/schedules
-schedulesRouter.get('/', (req: Request, res: Response) => {
-  const schedules = db.get('schedules');
-  res.json(schedules);
+schedulesRouter.get('/', async (req: Request, res: Response) => {
+  try {
+    const pool = getPool();
+    const [rows]: any = await pool.query('SELECT * FROM schedules ORDER BY day_code ASC');
+    const schedules: DaySchedule[] = rows.map((r: any) => ({
+      dayCode: r.day_code,
+      dayName: r.day_name,
+      active: Boolean(r.active),
+      blocks: r.blocks ? JSON.parse(r.blocks) : [],
+    }));
+    res.json(schedules);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // PUT /api/schedules
-schedulesRouter.put('/', (req: Request, res: Response) => {
-  const updatedSchedules: DaySchedule[] = req.body;
-  db.set('schedules', updatedSchedules);
+schedulesRouter.put('/', async (req: Request, res: Response) => {
+  try {
+    const pool = getPool();
+    const schedules: DaySchedule[] = req.body;
 
-  const activities = db.get('activities');
-  const newActivity: ActivityItem = {
-    id: `act-${Date.now()}`,
-    title: 'Jornadas y horarios comerciales actualizados',
-    timeAgo: 'Justo ahora',
-    type: 'schedule_update',
-    timestamp: new Date().toISOString(),
-  };
-  db.set('activities', [newActivity, ...activities.slice(0, 49)]);
+    for (const sch of schedules) {
+      await pool.query(
+        `INSERT INTO schedules (day_code, day_name, active, blocks)
+         VALUES (?, ?, ?, ?)
+         ON DUPLICATE KEY UPDATE day_name = VALUES(day_name), active = VALUES(active), blocks = VALUES(blocks)`,
+        [sch.dayCode, sch.dayName, sch.active ? 1 : 0, JSON.stringify(sch.blocks)]
+      );
+    }
 
-  res.json(updatedSchedules);
+    // Audit activity
+    await pool.query(
+      `INSERT INTO activities (id, title, client_name, time_ago, type, amount, timestamp)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [
+        `act-${Date.now()}`,
+        'Jornadas y horarios comerciales actualizados',
+        null,
+        'Justo ahora',
+        'schedule_update',
+        null,
+        new Date().toISOString(),
+      ]
+    );
+
+    res.json(schedules);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
 });
