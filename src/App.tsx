@@ -36,7 +36,7 @@ export function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(true);
 
-  // Main Data States (All from real Backend DB)
+  // Main Data States (All from MySQL Backend DB)
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [services, setServices] = useState<ServiceItem[]>([]);
   const [professionals, setProfessionals] = useState<Professional[]>([]);
@@ -44,7 +44,7 @@ export function App() {
   const [activities, setActivities] = useState<ActivityItem[]>([]);
   const [schedule, setSchedule] = useState<DaySchedule[]>([]);
   const [businessConfig, setBusinessConfig] = useState<BusinessConfig>({
-    name: 'Turnia SaaS',
+    name: 'Turnia Negocio & Reservas',
     category: 'Estética & Bienestar',
     description: 'Gestión inteligente de reservas',
     phone: '',
@@ -63,6 +63,7 @@ export function App() {
   const [isNewServiceOpen, setIsNewServiceOpen] = useState(false);
   const [editingService, setEditingService] = useState<ServiceItem | null>(null);
   const [isNewProfessionalOpen, setIsNewProfessionalOpen] = useState(false);
+  const [editingProfessional, setEditingProfessional] = useState<Professional | null>(null);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
 
   // Notification Toast
@@ -121,7 +122,6 @@ export function App() {
       const created = await api.reservations.create(newResData);
       setReservations((prev) => [created, ...prev]);
 
-      // Refresh clients and activities
       const [updatedClients, updatedActivities, updatedProfs] = await Promise.all([
         api.clients.getAll(),
         api.activities.getAll(),
@@ -162,6 +162,18 @@ export function App() {
     }
   };
 
+  const handleDeleteReservation = async (id: string) => {
+    try {
+      await api.reservations.delete(id);
+      setReservations((prev) => prev.filter((r) => r.id !== id));
+      const updatedActivities = await api.activities.getAll();
+      setActivities(updatedActivities);
+      showToast('Reserva eliminada permanentemente.', 'info');
+    } catch (err: any) {
+      showToast('Error al eliminar reserva', 'error');
+    }
+  };
+
   // Handlers for Services
   const handleSaveService = async (serviceData: Omit<ServiceItem, 'id'>) => {
     try {
@@ -194,18 +206,49 @@ export function App() {
     }
   };
 
+  const handleDeleteService = async (serviceId: string) => {
+    try {
+      await api.services.delete(serviceId);
+      setServices((prev) => prev.filter((s) => s.id !== serviceId));
+      const updatedActivities = await api.activities.getAll();
+      setActivities(updatedActivities);
+      showToast('Servicio eliminado del catálogo.', 'info');
+    } catch (err: any) {
+      showToast('Error al eliminar servicio', 'error');
+    }
+  };
+
   // Handlers for Professionals
   const handleSaveProfessional = async (
     profData: Omit<Professional, 'id' | 'monthlyBookings'>
   ) => {
     try {
-      const created = await api.professionals.create(profData);
-      setProfessionals((prev) => [created, ...prev]);
+      if (editingProfessional) {
+        const updated = await api.professionals.update(editingProfessional.id, profData);
+        setProfessionals((prev) => prev.map((p) => (p.id === editingProfessional.id ? updated : p)));
+        showToast(`Profesional "${profData.name}" actualizado.`);
+        setEditingProfessional(null);
+      } else {
+        const created = await api.professionals.create(profData);
+        setProfessionals((prev) => [created, ...prev]);
+        showToast(`Profesional "${profData.name}" agregado al equipo.`);
+      }
       const updatedActivities = await api.activities.getAll();
       setActivities(updatedActivities);
-      showToast(`Profesional "${profData.name}" agregado al equipo.`);
     } catch (err: any) {
-      showToast('Error al registrar profesional', 'error');
+      showToast('Error al guardar profesional', 'error');
+    }
+  };
+
+  const handleDeleteProfessional = async (id: string) => {
+    try {
+      await api.professionals.delete(id);
+      setProfessionals((prev) => prev.filter((p) => p.id !== id));
+      const updatedActivities = await api.activities.getAll();
+      setActivities(updatedActivities);
+      showToast('Profesional eliminado del equipo.', 'info');
+    } catch (err: any) {
+      showToast('Error al eliminar profesional', 'error');
     }
   };
 
@@ -219,6 +262,28 @@ export function App() {
       showToast(`Cliente "${clientData.name}" registrado.`);
     } catch (err: any) {
       showToast('Error al registrar cliente', 'error');
+    }
+  };
+
+  const handleUpdateClient = async (id: string, clientData: Partial<ClientItem>) => {
+    try {
+      const updated = await api.clients.update(id, clientData);
+      setClients((prev) => prev.map((c) => (c.id === id ? updated : c)));
+      showToast(`Cliente "${updated.name}" actualizado.`);
+    } catch (err: any) {
+      showToast('Error al actualizar cliente', 'error');
+    }
+  };
+
+  const handleDeleteClient = async (id: string) => {
+    try {
+      await api.clients.delete(id);
+      setClients((prev) => prev.filter((c) => c.id !== id));
+      const updatedActivities = await api.activities.getAll();
+      setActivities(updatedActivities);
+      showToast('Cliente eliminado correctamente.', 'info');
+    } catch (err: any) {
+      showToast('Error al eliminar cliente', 'error');
     }
   };
 
@@ -253,11 +318,11 @@ export function App() {
   // Real Dynamic Calculations
   const now = new Date();
   const currentMonthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-  const monthlyRevenue = reservations
-    .filter((r) => r.status !== 'cancelada' && r.date.startsWith(currentMonthStr))
+  const monthlyRevenue = (reservations || [])
+    .filter((r) => r.status !== 'cancelada' && r.date && r.date.startsWith(currentMonthStr))
     .reduce((sum, r) => sum + (Number(r.price) || 0), 0);
 
-  const pendingCount = reservations.filter((r) => r.status === 'pendiente').length;
+  const pendingCount = (reservations || []).filter((r) => r.status === 'pendiente').length;
 
   return (
     <div className="min-h-screen bg-[#f8f9fa] text-[#191c1d] flex flex-col font-sans">
@@ -325,9 +390,7 @@ export function App() {
                   services={services}
                   onOpenNewBooking={() => handleOpenBookingModal()}
                   onSelectReservation={(r) => setSelectedReservation(r)}
-                  onEditReservation={(r) => {
-                    setSelectedReservation(r);
-                  }}
+                  onEditReservation={(r) => setSelectedReservation(r)}
                   onCancelReservation={handleCancelReservation}
                   searchQuery={searchQuery}
                 />
@@ -346,6 +409,8 @@ export function App() {
                 <ClientesView
                   clients={clients}
                   onAddClient={handleAddClient}
+                  onUpdateClient={handleUpdateClient}
+                  onDeleteClient={handleDeleteClient}
                   onOpenNewBookingWithClient={(client) =>
                     handleOpenBookingModal({
                       clientName: client.name,
@@ -368,6 +433,7 @@ export function App() {
                     setIsNewServiceOpen(true);
                   }}
                   onToggleActive={handleToggleServiceActive}
+                  onDeleteService={handleDeleteService}
                   searchQuery={searchQuery}
                 />
               )}
@@ -375,10 +441,15 @@ export function App() {
               {currentView === 'profesionales' && (
                 <ProfesionalesView
                   professionals={professionals}
-                  onOpenNewProfessional={() => setIsNewProfessionalOpen(true)}
-                  onSelectProfessional={(_prof) => {
-                    showToast(`Perfil de ${_prof.name} abierto.`, 'info');
+                  onOpenNewProfessional={() => {
+                    setEditingProfessional(null);
+                    setIsNewProfessionalOpen(true);
                   }}
+                  onEditProfessional={(prof) => {
+                    setEditingProfessional(prof);
+                    setIsNewProfessionalOpen(true);
+                  }}
+                  onDeleteProfessional={handleDeleteProfessional}
                   onNavigateToSchedule={() => setCurrentView('horarios')}
                   searchQuery={searchQuery}
                 />
@@ -432,6 +503,7 @@ export function App() {
         onClose={() => setSelectedReservation(null)}
         onUpdateStatus={handleUpdateReservationStatus}
         onCancelReservation={handleCancelReservation}
+        onDeleteReservation={handleDeleteReservation}
       />
 
       <NewServiceModal
@@ -446,8 +518,12 @@ export function App() {
 
       <NewProfessionalModal
         isOpen={isNewProfessionalOpen}
-        onClose={() => setIsNewProfessionalOpen(false)}
+        onClose={() => {
+          setIsNewProfessionalOpen(false);
+          setEditingProfessional(null);
+        }}
         onSave={handleSaveProfessional}
+        editingProfessional={editingProfessional}
       />
 
       <AdminProfileModal

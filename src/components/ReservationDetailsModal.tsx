@@ -6,6 +6,7 @@ interface ReservationDetailsModalProps {
   onClose: () => void;
   onUpdateStatus: (id: string, newStatus: ReservationStatus) => void;
   onCancelReservation: (reservation: Reservation) => void;
+  onDeleteReservation?: (id: string) => void;
 }
 
 export const ReservationDetailsModal: React.FC<ReservationDetailsModalProps> = ({
@@ -13,6 +14,7 @@ export const ReservationDetailsModal: React.FC<ReservationDetailsModalProps> = (
   onClose,
   onUpdateStatus,
   onCancelReservation,
+  onDeleteReservation,
 }) => {
   if (!reservation) return null;
 
@@ -60,15 +62,16 @@ export const ReservationDetailsModal: React.FC<ReservationDetailsModalProps> = (
 
   return (
     <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4 backdrop-blur-xs">
-      <div className="bg-white rounded-xl max-w-md w-full p-6 shadow-2xl animate-in fade-in duration-150">
-        <div className="flex justify-between items-start pb-3 border-b border-[#e1e3e4] mb-4">
-          <div>
-            <span className="text-[11px] uppercase tracking-wider text-[#757684] font-semibold block">
-              Detalles de la Cita
-            </span>
-            <h3 className="font-bold text-xl text-[#191c1d] mt-0.5">
-              {reservation.clientName}
-            </h3>
+      <div className="bg-white rounded-xl max-w-lg w-full p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+        <div className="flex justify-between items-center pb-3 border-b border-[#e1e3e4] mb-4">
+          <div className="flex items-center gap-2">
+            <div className="p-2 bg-[#dee0ff] text-[#24389c] rounded-lg">
+              <span className="material-symbols-outlined text-[20px]">event_note</span>
+            </div>
+            <div>
+              <h3 className="font-bold text-lg text-[#191c1d]">Detalles de la Cita</h3>
+              <p className="text-xs text-[#757684]">ID: {reservation.id}</p>
+            </div>
           </div>
           <button
             onClick={onClose}
@@ -78,13 +81,16 @@ export const ReservationDetailsModal: React.FC<ReservationDetailsModalProps> = (
           </button>
         </div>
 
-        <div className="space-y-4 text-sm">
-          <div className="flex items-center justify-between p-3 bg-[#f8f9fa] rounded-lg border border-[#e1e3e4]">
-            <span className="text-xs text-[#757684] font-medium">Estado actual</span>
-            {getStatusBadge(reservation.status)}
+        <div className="space-y-4">
+          <div className="flex justify-between items-center p-3 bg-[#f8f9fa] rounded-lg border border-[#e1e3e4]">
+            <div>
+              <span className="text-xs text-[#757684] block">Cliente</span>
+              <span className="font-bold text-[#191c1d] text-base">{reservation.clientName}</span>
+            </div>
+            <div>{getStatusBadge(reservation.status)}</div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3 text-xs">
+          <div className="grid grid-cols-2 gap-4 text-xs">
             <div className="p-3 bg-[#f8f9fa] rounded-lg border border-[#e1e3e4]">
               <span className="text-[#757684] block">Fecha y Hora</span>
               <span className="font-bold text-[#191c1d] text-sm mt-0.5 block font-mono">
@@ -144,18 +150,35 @@ export const ReservationDetailsModal: React.FC<ReservationDetailsModalProps> = (
         </div>
 
         <div className="flex items-center justify-between gap-3 pt-5 mt-4 border-t border-[#e1e3e4]">
-          {reservation.status !== 'cancelada' ? (
-            <button
-              onClick={() => {
-                onCancelReservation(reservation);
-                onClose();
-              }}
-              className="text-xs text-[#ba1a1a] hover:underline font-semibold flex items-center gap-1"
-            >
-              <span className="material-symbols-outlined text-[16px]">cancel</span>
-              Cancelar cita
-            </button>
-          ) : <div />}
+          <div className="flex items-center gap-3">
+            {reservation.status !== 'cancelada' && (
+              <button
+                onClick={() => {
+                  onCancelReservation(reservation);
+                  onClose();
+                }}
+                className="text-xs text-[#ba1a1a] hover:underline font-semibold flex items-center gap-1"
+              >
+                <span className="material-symbols-outlined text-[16px]">cancel</span>
+                Cancelar cita
+              </button>
+            )}
+
+            {onDeleteReservation && (
+              <button
+                onClick={() => {
+                  if (window.confirm(`¿Estás seguro de eliminar permanentemente esta reserva?`)) {
+                    onDeleteReservation(reservation.id);
+                    onClose();
+                  }
+                }}
+                className="text-xs text-[#757684] hover:text-[#ba1a1a] hover:underline font-medium flex items-center gap-1"
+              >
+                <span className="material-symbols-outlined text-[16px]">delete</span>
+                Eliminar
+              </button>
+            )}
+          </div>
 
           <div className="flex gap-2">
             <button
@@ -170,7 +193,7 @@ export const ReservationDetailsModal: React.FC<ReservationDetailsModalProps> = (
               onClick={handleStatusSave}
               className="px-4 py-1.5 bg-[#24389c] hover:bg-[#1d2d7c] text-white font-semibold rounded-lg text-xs"
             >
-              Actualizar
+              Guardar Estado
             </button>
           </div>
         </div>
