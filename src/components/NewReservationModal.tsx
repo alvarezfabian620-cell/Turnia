@@ -159,7 +159,7 @@ export const NewReservationModal: React.FC<NewReservationModalProps> = ({
               >
                 {services.map((s) => (
                   <option key={s.id} value={s.id}>
-                    {s.name} (${s.price.toFixed(2)} - {s.durationMinutes}m)
+                    {s.name} (${Number(s.price || 0).toLocaleString('es-CO')} - {s.durationMinutes}m)
                   </option>
                 ))}
               </select>
@@ -248,7 +248,9 @@ export const NewReservationModal: React.FC<NewReservationModalProps> = ({
             </span>
             <span className="text-[#454652]">
               Precio estimado:{' '}
-              <strong className="text-[#24389c] text-sm">${selectedService?.price.toFixed(2) || '25.00'}</strong>
+              <strong className="text-[#24389c] text-sm">
+                ${Number(selectedService?.price || 0).toLocaleString('es-CO')}
+              </strong>
             </span>
           </div>
 

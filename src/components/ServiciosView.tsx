@@ -85,7 +85,7 @@ export const ServiciosView: React.FC<ServiciosViewProps> = ({
                   <span>{service.durationMinutes} min</span>
                 </div>
                 <div className="text-lg font-bold text-[#191c1d] font-mono">
-                  ${service.price.toFixed(2)}
+                  ${Number(service.price || 0).toLocaleString('es-CO')}
                 </div>
               </div>
 

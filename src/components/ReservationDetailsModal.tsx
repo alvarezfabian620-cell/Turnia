@@ -95,7 +95,7 @@ export const ReservationDetailsModal: React.FC<ReservationDetailsModalProps> = (
             <div className="p-3 bg-[#f8f9fa] rounded-lg border border-[#e1e3e4]">
               <span className="text-[#757684] block">Duración & Tarifa</span>
               <span className="font-bold text-[#24389c] text-sm mt-0.5 block">
-                {reservation.durationMinutes} min · ${reservation.price.toFixed(2)}
+                {reservation.durationMinutes} min · ${Number(reservation.price || 0).toLocaleString('es-CO')}
               </span>
             </div>
           </div>
