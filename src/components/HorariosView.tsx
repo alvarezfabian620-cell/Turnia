@@ -19,6 +19,12 @@ export const HorariosView: React.FC<HorariosViewProps> = ({
   const [bufferTime, setBufferTime] = useState('15 min');
   const [advanceDays, setAdvanceDays] = useState('30 días');
 
+  React.useEffect(() => {
+    if (initialSchedule && initialSchedule.length > 0) {
+      setSchedule(initialSchedule);
+    }
+  }, [initialSchedule]);
+
   const handleToggleDay = (dayIndex: number) => {
     setSchedule((prev) => {
       const next = [...prev];

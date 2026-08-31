@@ -97,16 +97,15 @@ export function App() {
         api.business.get(),
       ]);
 
-      setReservations(resReservations);
-      setServices(resServices);
-      setProfessionals(resProfessionals);
-      setClients(resClients);
-      setActivities(resActivities);
-      setSchedule(resSchedules);
-      setBusinessConfig(resBusiness);
+      if (Array.isArray(resReservations)) setReservations(resReservations);
+      if (Array.isArray(resServices)) setServices(resServices);
+      if (Array.isArray(resProfessionals)) setProfessionals(resProfessionals);
+      if (Array.isArray(resClients)) setClients(resClients);
+      if (Array.isArray(resActivities)) setActivities(resActivities);
+      if (Array.isArray(resSchedules)) setSchedule(resSchedules);
+      if (resBusiness && typeof resBusiness === 'object') setBusinessConfig(resBusiness);
     } catch (err: any) {
-      console.error('Error fetching data from API:', err);
-      showToast('Conectando con el servidor local...', 'info');
+      console.warn('API sync warning:', err);
     } finally {
       setIsLoading(false);
     }

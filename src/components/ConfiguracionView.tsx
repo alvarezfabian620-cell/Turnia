@@ -16,6 +16,12 @@ export const ConfiguracionView: React.FC<ConfiguracionViewProps> = ({
   const [form, setForm] = useState<BusinessConfig>(initialConfig);
   const [isSaved, setIsSaved] = useState(false);
 
+  React.useEffect(() => {
+    if (initialConfig) {
+      setForm(initialConfig);
+    }
+  }, [initialConfig]);
+
   // Additional settings states
   const [cancellationHours, setCancellationHours] = useState('24');
   const [requireDeposit, setRequireDeposit] = useState(false);

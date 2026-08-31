@@ -18,16 +18,25 @@ export const CalendarioView: React.FC<CalendarioViewProps> = ({
   const [selectedProfId, setSelectedProfId] = useState<string>('all');
   const [weekOffset, setWeekOffset] = useState(0);
 
-  // Reference week: 16 - 22 Octubre 2023
-  const weekDays = [
-    { name: 'LUN', dateNum: 16 + weekOffset * 7, fullDate: '2023-10-16', isToday: false },
-    { name: 'MAR', dateNum: 17 + weekOffset * 7, fullDate: '2023-10-17', isToday: false },
-    { name: 'MIÉ', dateNum: 18 + weekOffset * 7, fullDate: '2023-10-18', isToday: true },
-    { name: 'JUE', dateNum: 19 + weekOffset * 7, fullDate: '2023-10-19', isToday: false },
-    { name: 'VIE', dateNum: 20 + weekOffset * 7, fullDate: '2023-10-20', isToday: false },
-    { name: 'SÁB', dateNum: 21 + weekOffset * 7, fullDate: '2023-10-21', isToday: false },
-    { name: 'DOM', dateNum: 22 + weekOffset * 7, fullDate: '2023-10-22', isToday: false },
-  ];
+  const now = new Date();
+  const currentDayOfWeek = (now.getDay() + 6) % 7; // 0 = Monday, 6 = Sunday
+  const monday = new Date(now);
+  monday.setDate(now.getDate() - currentDayOfWeek + weekOffset * 7);
+
+  const dayNames = ['LUN', 'MAR', 'MIÉ', 'JUE', 'VIE', 'SÁB', 'DOM'];
+  const todayISO = now.toISOString().split('T')[0];
+
+  const weekDays = dayNames.map((name, i) => {
+    const d = new Date(monday);
+    d.setDate(monday.getDate() + i);
+    const fullDate = d.toISOString().split('T')[0];
+    return {
+      name,
+      dateNum: d.getDate(),
+      fullDate,
+      isToday: fullDate === todayISO,
+    };
+  });
 
   const hours = [
     '08:00',
