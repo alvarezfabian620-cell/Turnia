@@ -337,6 +337,7 @@ export function App() {
         onOpenProfile={() => setIsProfileOpen(true)}
         isMobileOpen={isMobileMenuOpen}
         onCloseMobile={() => setIsMobileMenuOpen(false)}
+        businessConfig={businessConfig}
       />
 
       {/* Main Content Layout */}

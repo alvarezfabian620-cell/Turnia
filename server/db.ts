@@ -135,7 +135,7 @@ export async function initDatabase(): Promise<mysql.Pool> {
       phone VARCHAR(50),
       email VARCHAR(255),
       address VARCHAR(255),
-      logo_url TEXT,
+      logo_url LONGTEXT,
       accept_new_bookings TINYINT(1) DEFAULT 1,
       show_prices_publicly TINYINT(1) DEFAULT 1,
       time_zone VARCHAR(100) DEFAULT 'America/Bogota'

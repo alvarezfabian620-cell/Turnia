@@ -1,5 +1,5 @@
 import React from 'react';
-import { ViewMode } from '../types';
+import { ViewMode, BusinessConfig } from '../types';
 import { TurniaLogo } from './TurniaLogo';
 
 interface SidebarProps {
@@ -9,6 +9,7 @@ interface SidebarProps {
   onOpenProfile: () => void;
   isMobileOpen?: boolean;
   onCloseMobile?: () => void;
+  businessConfig?: BusinessConfig;
 }
 
 interface NavItem {
@@ -21,10 +22,11 @@ interface NavItem {
 export const Sidebar: React.FC<SidebarProps> = ({
   currentView,
   onNavigate,
-  pendingCount = 8,
+  pendingCount = 0,
   onOpenProfile,
   isMobileOpen = false,
   onCloseMobile,
+  businessConfig,
 }) => {
   const navItems: NavItem[] = [
     { id: 'dashboard', label: 'Dashboard', icon: 'dashboard' },
@@ -58,18 +60,23 @@ export const Sidebar: React.FC<SidebarProps> = ({
           isMobileOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
         }`}
       >
-        {/* Header Brand */}
+        {/* Header Brand with Dynamic Business Logo */}
         <div className="mb-8 px-2 flex items-center justify-between">
           <button
             onClick={() => handleItemClick('dashboard')}
-            className="text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-[#24389c] rounded-md"
+            className="text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-[#24389c] rounded-md transition-opacity hover:opacity-90 w-full"
+            title="Ir al Dashboard"
           >
-            <TurniaLogo />
+            <TurniaLogo
+              logoUrl={businessConfig?.logoUrl}
+              businessName={businessConfig?.name}
+              category={businessConfig?.category}
+            />
           </button>
           {onCloseMobile && (
             <button
               onClick={onCloseMobile}
-              className="md:hidden p-1 text-[#757684] hover:text-[#191c1d] rounded-md"
+              className="md:hidden p-1 text-[#757684] hover:text-[#191c1d] rounded-md shrink-0 ml-2"
             >
               <span className="material-symbols-outlined text-[20px]">close</span>
             </button>
@@ -126,12 +133,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
             onClick={onOpenProfile}
             className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-[#454652] hover:text-[#24389c] hover:bg-[#f3f4f5] transition-colors text-sm text-left group"
           >
-            <span className="material-symbols-outlined text-[#757684] group-hover:text-[#24389c] text-[20px]">
-              account_circle
-            </span>
-            <div className="flex flex-col">
-              <span className="font-medium text-[#191c1d] group-hover:text-[#24389c] text-sm">
-                Admin Profile
+            <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-[#24389c] to-[#3f51b5] text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-2xs">
+              A
+            </div>
+            <div className="flex flex-col min-w-0">
+              <span className="font-semibold text-[#191c1d] group-hover:text-[#24389c] text-sm truncate">
+                {businessConfig?.name || 'Admin Profile'}
               </span>
               <span className="text-[11px] text-[#757684]">Administrador</span>
             </div>
