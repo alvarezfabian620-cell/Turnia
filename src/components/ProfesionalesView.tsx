@@ -244,8 +244,8 @@ export const ProfesionalesView: React.FC<ProfesionalesViewProps> = ({
               </button>
             </div>
 
-            {/* Modal Appointments List */}
-            <div className="flex-1 overflow-y-auto space-y-3 pr-1">
+            {/* Modal Appointments List with max 5 items visible before scroll */}
+            <div className="max-h-[390px] overflow-y-auto space-y-2.5 pr-1.5">
               {profAppointments.length === 0 ? (
                 <div className="py-12 text-center">
                   <span className="material-symbols-outlined text-[40px] text-[#bac3ff] mb-2 block">
@@ -309,21 +309,10 @@ export const ProfesionalesView: React.FC<ProfesionalesViewProps> = ({
                 Total citas: <strong className="text-[#191c1d]">{profAppointments.length}</strong>
               </span>
 
-              <div className="flex items-center gap-2">
-                {onNavigate && (
-                  <button
-                    onClick={() => {
-                      setSelectedProfForAppointments(null);
-                      onNavigate('calendario');
-                    }}
-                    className="px-4 py-2 bg-[#f8f9fa] hover:bg-[#edeeef] text-[#24389c] border border-[#bac3ff] rounded-xl text-xs font-bold transition-all cursor-pointer"
-                  >
-                    Ver en Calendario
-                  </button>
-                )}
+              <div>
                 <button
                   onClick={() => setSelectedProfForAppointments(null)}
-                  className="px-5 py-2 bg-[#24389c] hover:bg-[#1d2d7c] text-white rounded-xl text-xs font-bold transition-all cursor-pointer shadow-xs"
+                  className="px-6 py-2 bg-[#24389c] hover:bg-[#1d2d7c] text-white rounded-xl text-xs font-bold transition-all cursor-pointer shadow-xs"
                 >
                   Cerrar
                 </button>
