@@ -6,6 +6,7 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
+  Legend,
   ResponsiveContainer,
   AreaChart,
   Area,
@@ -354,8 +355,15 @@ export const ReportesView: React.FC<ReportesViewProps> = ({
                     fontSize: '12px',
                   }}
                 />
-                <Bar dataKey="reservas" fill="#24389c" radius={[4, 4, 0, 0]} name="Confirmadas" />
-                <Bar dataKey="canceladas" fill="#ffdad6" radius={[4, 4, 0, 0]} name="Canceladas" />
+                <Legend
+                  verticalAlign="top"
+                  align="right"
+                  height={32}
+                  iconType="circle"
+                  wrapperStyle={{ fontSize: '11px', fontWeight: 600, paddingBottom: '4px' }}
+                />
+                <Bar dataKey="reservas" fill="#24389c" radius={[4, 4, 0, 0]} name="Citas Activas / Realizadas" />
+                <Bar dataKey="canceladas" fill="#ffb4ab" radius={[4, 4, 0, 0]} name="Canceladas" />
               </BarChart>
             </ResponsiveContainer>
           </div>
