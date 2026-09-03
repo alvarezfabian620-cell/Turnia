@@ -23,10 +23,8 @@ export const Header: React.FC<HeaderProps> = ({
   isConnectedWS = true,
 }) => {
   const [showNotifications, setShowNotifications] = useState(false);
-  const [showHelp, setShowHelp] = useState(false);
   const [readIds, setReadIds] = useState<Set<string>>(new Set());
   const notifRef = useRef<HTMLDivElement>(null);
-  const helpRef = useRef<HTMLDivElement>(null);
 
   // Calculate unread count
   const unreadCount = activities.filter((act) => !readIds.has(act.id)).length;
@@ -46,9 +44,6 @@ export const Header: React.FC<HeaderProps> = ({
     const handleClickOutside = (event: MouseEvent) => {
       if (notifRef.current && !notifRef.current.contains(event.target as Node)) {
         setShowNotifications(false);
-      }
-      if (helpRef.current && !helpRef.current.contains(event.target as Node)) {
-        setShowHelp(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -163,42 +158,6 @@ export const Header: React.FC<HeaderProps> = ({
                     </div>
                   ))
                 )}
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Help & Guide Popover */}
-        <div className="relative" ref={helpRef}>
-          <button
-            onClick={() => setShowHelp(!showHelp)}
-            className="p-2 text-[#454652] hover:text-[#24389c] hover:bg-[#f3f4f5] rounded-full transition-colors cursor-pointer"
-            title="Ayuda y documentación"
-          >
-            <span className="material-symbols-outlined text-[22px]">help_outline</span>
-          </button>
-
-          {showHelp && (
-            <div className="absolute right-0 mt-2 w-72 bg-white border border-[#e1e3e4] rounded-2xl shadow-2xl p-4 z-50">
-              <h4 className="font-bold text-sm text-[#191c1d] mb-1">
-                Centro de Asistencia TURNIA
-              </h4>
-              <p className="text-xs text-[#454652] mb-3 leading-relaxed">
-                Plataforma SaaS para gestionar citas, horarios, profesionales y reportes en tiempo real con WebSockets.
-              </p>
-              <div className="space-y-2 text-xs">
-                <div className="p-2.5 bg-[#f8f9fa] border border-[#e1e3e4] rounded-xl">
-                  <span className="font-bold text-[#24389c] block">Sincronización en vivo:</span>
-                  <span className="text-[#757684]">
-                    Cualquier cita agendada se refleja al instante en el dashboard y calendario.
-                  </span>
-                </div>
-                <div className="p-2.5 bg-[#f8f9fa] border border-[#e1e3e4] rounded-xl">
-                  <span className="font-bold text-[#24389c] block">Horarios y festivos:</span>
-                  <span className="text-[#757684]">
-                    Configura descansos y bloqueos en el módulo de Horarios.
-                  </span>
-                </div>
               </div>
             </div>
           )}
