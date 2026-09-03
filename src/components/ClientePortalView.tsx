@@ -52,14 +52,6 @@ export const ClientePortalView: React.FC<ClientePortalViewProps> = ({
             Bienvenido a {businessConfig.name || 'nuestro centro'}. Gestiona tus citas agendadas o reserva un nuevo servicio cuando quieras.
           </p>
         </div>
-
-        <button
-          onClick={onOpenNewBooking}
-          className="px-6 py-3 bg-white hover:bg-[#dee0ff] text-[#24389c] rounded-2xl text-sm font-bold shadow-md transition-all active:scale-[0.98] cursor-pointer shrink-0 flex items-center justify-center gap-2"
-        >
-          <span className="material-symbols-outlined text-[20px]">calendar_add_on</span>
-          <span>Reservar Cita Ahora</span>
-        </button>
       </div>
 
       {/* Upcoming Appointments Section */}
