@@ -41,6 +41,21 @@ export const ReservationDetailsModal: React.FC<ReservationDetailsModalProps> = (
     onClose();
   };
 
+  const formatDateDisplay = (dateStr: string) => {
+    if (!dateStr) return '--';
+    const parts = dateStr.split('-');
+    if (parts.length === 3) {
+      const [y, m, d] = parts;
+      const months = [
+        'Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun',
+        'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'
+      ];
+      const monthName = months[parseInt(m, 10) - 1] || m;
+      return `${d} ${monthName} ${y}`;
+    }
+    return dateStr;
+  };
+
   const getStatusBadge = (status: ReservationStatus) => {
     switch (status) {
       case 'confirmada':
@@ -110,36 +125,39 @@ export const ReservationDetailsModal: React.FC<ReservationDetailsModalProps> = (
             <div>{getStatusBadge(reservation.status)}</div>
           </div>
 
-          {/* 4 Fully Separated Metric Blocks: Fecha, Hora, Duración, Tarifa */}
+          {/* 4 Fully Separated Metric Blocks with single-line whitespace-nowrap */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-xs">
             {/* 1. Fecha */}
-            <div className="p-3 bg-[#f8f9fa] rounded-xl border border-[#e1e3e4] flex flex-col justify-between">
-              <span className="text-[#757684] block font-semibold text-[10px] sm:text-[11px] uppercase tracking-wider">Fecha</span>
-              <span className="font-bold text-[#191c1d] text-xs sm:text-sm mt-1 block font-mono">
-                {reservation.date}
+            <div className="p-3 bg-[#f8f9fa] rounded-xl border border-[#e1e3e4] flex flex-col justify-between overflow-hidden">
+              <span className="text-[#757684] block font-semibold text-[10px] uppercase tracking-wider">Fecha</span>
+              <span
+                className="font-bold text-[#191c1d] text-xs sm:text-[13px] mt-1 block whitespace-nowrap truncate font-mono"
+                title={reservation.date}
+              >
+                {formatDateDisplay(reservation.date)}
               </span>
             </div>
 
             {/* 2. Hora */}
-            <div className="p-3 bg-[#f8f9fa] rounded-xl border border-[#e1e3e4] flex flex-col justify-between">
-              <span className="text-[#757684] block font-semibold text-[10px] sm:text-[11px] uppercase tracking-wider">Hora</span>
-              <span className="font-bold text-[#24389c] text-xs sm:text-sm mt-1 block font-mono">
+            <div className="p-3 bg-[#f8f9fa] rounded-xl border border-[#e1e3e4] flex flex-col justify-between overflow-hidden">
+              <span className="text-[#757684] block font-semibold text-[10px] uppercase tracking-wider">Hora</span>
+              <span className="font-bold text-[#24389c] text-xs sm:text-[13px] mt-1 block font-mono whitespace-nowrap truncate">
                 {reservation.time}
               </span>
             </div>
 
             {/* 3. Duración */}
-            <div className="p-3 bg-[#f8f9fa] rounded-xl border border-[#e1e3e4] flex flex-col justify-between">
-              <span className="text-[#757684] block font-semibold text-[10px] sm:text-[11px] uppercase tracking-wider">Duración</span>
-              <span className="font-bold text-[#191c1d] text-xs sm:text-sm mt-1 block">
+            <div className="p-3 bg-[#f8f9fa] rounded-xl border border-[#e1e3e4] flex flex-col justify-between overflow-hidden">
+              <span className="text-[#757684] block font-semibold text-[10px] uppercase tracking-wider">Duración</span>
+              <span className="font-bold text-[#191c1d] text-xs sm:text-[13px] mt-1 block whitespace-nowrap truncate">
                 {reservation.durationMinutes} min
               </span>
             </div>
 
             {/* 4. Tarifa */}
-            <div className="p-3 bg-[#f8f9fa] rounded-xl border border-[#e1e3e4] flex flex-col justify-between">
-              <span className="text-[#757684] block font-semibold text-[10px] sm:text-[11px] uppercase tracking-wider">Tarifa</span>
-              <span className="font-bold text-[#24389c] text-xs sm:text-sm mt-1 block font-mono">
+            <div className="p-3 bg-[#f8f9fa] rounded-xl border border-[#e1e3e4] flex flex-col justify-between overflow-hidden">
+              <span className="text-[#757684] block font-semibold text-[10px] uppercase tracking-wider">Tarifa</span>
+              <span className="font-bold text-[#24389c] text-xs sm:text-[13px] mt-1 block font-mono whitespace-nowrap truncate">
                 ${Number(reservation.price || 0).toLocaleString('es-CO')}
               </span>
             </div>
