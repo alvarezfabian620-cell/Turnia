@@ -32,21 +32,52 @@ export const Sidebar: React.FC<SidebarProps> = ({
   businessConfig,
   user,
 }) => {
-  const navItems: NavItem[] = [
-    { id: 'dashboard', label: 'Dashboard', icon: 'dashboard' },
-    { id: 'reservas', label: 'Reservas', icon: 'event_available', badge: pendingCount },
-    { id: 'calendario', label: 'Calendario', icon: 'calendar_month' },
-    { id: 'clientes', label: 'Clientes', icon: 'group' },
-    { id: 'servicios', label: 'Servicios', icon: 'content_cut' },
-    { id: 'profesionales', label: 'Profesionales', icon: 'badge' },
-    { id: 'horarios', label: 'Horarios', icon: 'schedule' },
-    { id: 'reportes', label: 'Reportes', icon: 'assessment' },
-    { id: 'configuracion', label: 'Configuración', icon: 'settings' },
-  ];
+  const role = user?.role || 'admin';
+
+  // Build role-specific navigation menu
+  const getNavItems = (): NavItem[] => {
+    if (role === 'empleado') {
+      return [
+        { id: 'empleado_dashboard', label: 'Mi Inicio (Turno)', icon: 'dashboard' },
+        { id: 'empleado_agenda', label: 'Mi Agenda', icon: 'calendar_month' },
+        { id: 'reservas', label: 'Mis Citas', icon: 'event_available', badge: pendingCount },
+        { id: 'clientes', label: 'Mis Clientes', icon: 'group' },
+        { id: 'servicios', label: 'Servicios', icon: 'content_cut' },
+      ];
+    }
+
+    if (role === 'cliente') {
+      return [
+        { id: 'cliente_portal', label: 'Mi Portal', icon: 'home' },
+        { id: 'servicios', label: 'Catálogo de Servicios', icon: 'content_cut' },
+      ];
+    }
+
+    // Default: Admin menu
+    return [
+      { id: 'dashboard', label: 'Dashboard', icon: 'dashboard' },
+      { id: 'reservas', label: 'Reservas', icon: 'event_available', badge: pendingCount },
+      { id: 'calendario', label: 'Calendario', icon: 'calendar_month' },
+      { id: 'clientes', label: 'Clientes', icon: 'group' },
+      { id: 'servicios', label: 'Servicios', icon: 'content_cut' },
+      { id: 'profesionales', label: 'Profesionales', icon: 'badge' },
+      { id: 'horarios', label: 'Horarios', icon: 'schedule' },
+      { id: 'reportes', label: 'Reportes', icon: 'assessment' },
+      { id: 'configuracion', label: 'Configuración', icon: 'settings' },
+    ];
+  };
+
+  const navItems = getNavItems();
 
   const handleItemClick = (id: ViewMode) => {
     onNavigate(id);
     if (onCloseMobile) onCloseMobile();
+  };
+
+  const getRoleLabel = () => {
+    if (role === 'admin') return 'Administrador';
+    if (role === 'empleado') return 'Profesional / Staff';
+    return 'Cliente';
   };
 
   return (
@@ -67,9 +98,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {/* Header Brand with Dynamic Business Logo */}
         <div className="mb-8 px-2 flex items-center justify-between">
           <button
-            onClick={() => handleItemClick('dashboard')}
-            className="text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-[#24389c] rounded-md transition-opacity hover:opacity-90 w-full"
-            title="Ir al Dashboard"
+            onClick={() => handleItemClick(role === 'empleado' ? 'empleado_dashboard' : role === 'cliente' ? 'cliente_portal' : 'dashboard')}
+            className="text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-[#24389c] rounded-md transition-opacity hover:opacity-90 w-full cursor-pointer"
+            title="Ir al Inicio"
           >
             <TurniaLogo
               logoUrl={businessConfig?.logoUrl}
@@ -87,6 +118,25 @@ export const Sidebar: React.FC<SidebarProps> = ({
           )}
         </div>
 
+        {/* Role Badge Indicator */}
+        <div className="mb-4 px-2">
+          <div className="p-2.5 bg-[#f8f9fa] border border-[#e1e3e4] rounded-xl flex items-center gap-2">
+            <span
+              className={`w-2 h-2 rounded-full ${
+                role === 'admin' ? 'bg-[#24389c]' : role === 'empleado' ? 'bg-[#047857]' : 'bg-[#d97706]'
+              }`}
+            />
+            <div className="flex flex-col">
+              <span className="text-[10px] uppercase tracking-wider font-bold text-[#757684]">
+                Rol Activo
+              </span>
+              <span className="text-xs font-bold text-[#191c1d] capitalize">
+                {getRoleLabel()}
+              </span>
+            </div>
+          </div>
+        </div>
+
         {/* Navigation Items */}
         <nav className="flex-1 overflow-y-auto space-y-1">
           {navItems.map((item) => {
@@ -95,10 +145,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <button
                 key={item.id}
                 onClick={() => handleItemClick(item.id)}
-                className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-lg text-sm transition-all duration-150 group text-left ${
+                className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm transition-all duration-150 group text-left cursor-pointer ${
                   isActive
-                    ? 'text-[#24389c] font-bold bg-[#bac3ff]/20 border-l-4 border-[#24389c] shadow-xs'
-                    : 'text-[#454652] hover:text-[#24389c] hover:bg-[#f3f4f5] font-normal'
+                    ? 'text-[#24389c] font-bold bg-[#dee0ff]/60 border-l-4 border-[#24389c] shadow-2xs'
+                    : 'text-[#454652] hover:text-[#24389c] hover:bg-[#f3f4f5] font-medium'
                 }`}
               >
                 <div className="flex items-center gap-3">
@@ -131,22 +181,22 @@ export const Sidebar: React.FC<SidebarProps> = ({
           })}
         </nav>
 
-        {/* Footer Admin Profile & Logout */}
+        {/* Footer Profile & Logout */}
         <div className="mt-auto pt-4 border-t border-[#e1e3e4] flex items-center justify-between gap-2">
           <button
             onClick={onOpenProfile}
-            className="flex-1 flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[#454652] hover:text-[#24389c] hover:bg-[#f3f4f5] transition-colors text-sm text-left group min-w-0"
-            title="Ver perfil de administrador"
+            className="flex-1 flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-[#454652] hover:text-[#24389c] hover:bg-[#f3f4f5] transition-colors text-sm text-left group min-w-0 cursor-pointer"
+            title="Ver mi perfil"
           >
             <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-[#24389c] to-[#3f51b5] text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-2xs">
-              {user?.name ? user.name.slice(0, 2).toUpperCase() : 'AD'}
+              {user?.name ? user.name.slice(0, 2).toUpperCase() : 'US'}
             </div>
             <div className="flex flex-col min-w-0">
-              <span className="font-semibold text-[#191c1d] group-hover:text-[#24389c] text-xs truncate">
-                {user?.name || businessConfig?.name || 'Administrador'}
+              <span className="font-bold text-[#191c1d] group-hover:text-[#24389c] text-xs truncate">
+                {user?.name || 'Usuario'}
               </span>
               <span className="text-[10px] text-[#757684] truncate">
-                {user?.email || 'admin@turnia.com'}
+                {user?.email || 'usuario@turnia.com'}
               </span>
             </div>
           </button>
@@ -158,7 +208,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   onLogout();
                 }
               }}
-              className="p-2 text-[#757684] hover:text-[#ba1a1a] hover:bg-[#ffdad6]/40 rounded-lg transition-colors shrink-0"
+              className="p-2 text-[#757684] hover:text-[#ba1a1a] hover:bg-[#ffdad6]/40 rounded-xl transition-colors shrink-0 cursor-pointer"
               title="Cerrar sesión"
             >
               <span className="material-symbols-outlined text-[18px]">logout</span>

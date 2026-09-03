@@ -94,11 +94,15 @@ export interface ActivityItem {
   timestamp: string;
 }
 
+export type UserRole = 'admin' | 'empleado' | 'cliente';
+
 export interface AuthUser {
   id: string;
   name: string;
   email: string;
-  role: string;
+  role: UserRole;
+  professionalId?: string | null;
+  clientId?: string | null;
   failedAttempts: number;
   lockUntil?: string | null;
   resetToken?: string | null;
@@ -146,6 +150,8 @@ export async function initDatabase(): Promise<mysql.Pool> {
       email VARCHAR(255) NOT NULL UNIQUE,
       password_hash VARCHAR(255) NOT NULL,
       role VARCHAR(50) NOT NULL DEFAULT 'admin',
+      professional_id VARCHAR(100) NULL,
+      client_id VARCHAR(100) NULL,
       failed_attempts INT DEFAULT 0,
       lock_until VARCHAR(50) NULL,
       reset_token VARCHAR(255) NULL,
@@ -153,6 +159,14 @@ export async function initDatabase(): Promise<mysql.Pool> {
       created_at VARCHAR(50) NOT NULL
     ) ENGINE=InnoDB;
   `);
+
+  // Safe migrations for newly added columns
+  try {
+    await pool.query('ALTER TABLE users ADD COLUMN professional_id VARCHAR(100) NULL');
+  } catch (_) {}
+  try {
+    await pool.query('ALTER TABLE users ADD COLUMN client_id VARCHAR(100) NULL');
+  } catch (_) {}
 
   await pool.query(`
     CREATE TABLE IF NOT EXISTS business_config (
@@ -250,16 +264,41 @@ export async function initDatabase(): Promise<mysql.Pool> {
     ) ENGINE=InnoDB;
   `);
 
-  // 4. Seed default Admin User if empty
-  const [adminRows]: any = await pool.query('SELECT * FROM users WHERE email = ?', ['admin@turnia.com']);
+  // 4. Seed default Users for all 3 Roles
+  const defaultPasswordHash = bcrypt.hashSync('Turnia2026!', 10);
+  const now = new Date().toISOString();
+
+  // Admin User
+  const [adminRows]: any = await pool.query('SELECT id FROM users WHERE email = ?', ['admin@turnia.com']);
   if (adminRows.length === 0) {
-    const defaultPasswordHash = bcrypt.hashSync('Turnia2026!', 10);
     await pool.query(
-      `INSERT INTO users (id, name, email, password_hash, role, failed_attempts, created_at)
-       VALUES (?, ?, ?, ?, ?, 0, ?)`,
-      ['usr-admin', 'Administrador Turnia', 'admin@turnia.com', defaultPasswordHash, 'admin', new Date().toISOString()]
+      `INSERT INTO users (id, name, email, password_hash, role, professional_id, client_id, failed_attempts, created_at)
+       VALUES (?, ?, ?, ?, ?, NULL, NULL, 0, ?)`,
+      ['usr-admin', 'Administrador Turnia', 'admin@turnia.com', defaultPasswordHash, 'admin', now]
     );
-    console.log('👤 Usuario Administrador por defecto creado: admin@turnia.com / Turnia2026!');
+    console.log('👤 Usuario Administrador creado: admin@turnia.com / Turnia2026!');
+  }
+
+  // Empleado User (Carlos Mendoza)
+  const [empleadoRows]: any = await pool.query('SELECT id FROM users WHERE email = ?', ['carlos@turnia.com']);
+  if (empleadoRows.length === 0) {
+    await pool.query(
+      `INSERT INTO users (id, name, email, password_hash, role, professional_id, client_id, failed_attempts, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, NULL, 0, ?)`,
+      ['usr-emp-1', 'Carlos Mendoza', 'carlos@turnia.com', defaultPasswordHash, 'empleado', 'prof-1', now]
+    );
+    console.log('👤 Usuario Empleado creado: carlos@turnia.com / Turnia2026!');
+  }
+
+  // Cliente User (Andrés Felipe Castro)
+  const [clienteRows]: any = await pool.query('SELECT id FROM users WHERE email = ?', ['cliente@turnia.com']);
+  if (clienteRows.length === 0) {
+    await pool.query(
+      `INSERT INTO users (id, name, email, password_hash, role, professional_id, client_id, failed_attempts, created_at)
+       VALUES (?, ?, ?, ?, ?, NULL, ?, 0, ?)`,
+      ['usr-cli-1', 'Andrés Felipe Castro', 'cliente@turnia.com', defaultPasswordHash, 'cliente', 'cli-1', now]
+    );
+    console.log('👤 Usuario Cliente creado: cliente@turnia.com / Turnia2026!');
   }
 
   // 5. Seed default business config if table is empty
@@ -275,12 +314,12 @@ export async function initDatabase(): Promise<mysql.Pool> {
   const [scheduleRows]: any = await pool.query('SELECT * FROM schedules');
   if (scheduleRows.length === 0) {
     const defaultSchedules = [
-      { dayCode: 1, dayName: 'LUNES', active: 1, blocks: JSON.stringify([{ id: 'b-1', start: '09:00', end: '13:00' }, { id: 'b-2', start: '13:00', end: '14:00', isBreak: true, label: 'Almuerzo' }, { id: 'b-3', start: '14:00', end: '19:00' }]) },
-      { dayCode: 2, dayName: 'MARTES', active: 1, blocks: JSON.stringify([{ id: 'b-4', start: '09:00', end: '13:00' }, { id: 'b-5', start: '13:00', end: '14:00', isBreak: true, label: 'Almuerzo' }, { id: 'b-6', start: '14:00', end: '19:00' }]) },
-      { dayCode: 3, dayName: 'MIÉRCOLES', active: 1, blocks: JSON.stringify([{ id: 'b-7', start: '09:00', end: '13:00' }, { id: 'b-8', start: '13:00', end: '14:00', isBreak: true, label: 'Almuerzo' }, { id: 'b-9', start: '14:00', end: '19:00' }]) },
-      { dayCode: 4, dayName: 'JUEVES', active: 1, blocks: JSON.stringify([{ id: 'b-10', start: '09:00', end: '13:00' }, { id: 'b-11', start: '13:00', end: '14:00', isBreak: true, label: 'Almuerzo' }, { id: 'b-12', start: '14:00', end: '19:00' }]) },
-      { dayCode: 5, dayName: 'VIERNES', active: 1, blocks: JSON.stringify([{ id: 'b-13', start: '09:00', end: '13:00' }, { id: 'b-14', start: '13:00', end: '14:00', isBreak: true, label: 'Almuerzo' }, { id: 'b-15', start: '14:00', end: '20:00' }]) },
-      { dayCode: 6, dayName: 'SÁBADO', active: 1, blocks: JSON.stringify([{ id: 'b-16', start: '09:00', end: '15:00' }]) },
+      { dayCode: 1, dayName: 'LUNES', active: 1, blocks: JSON.stringify([{ id: 'b-1', start: '08:00', end: '18:00', isBreak: false }, { id: 'b-2', start: '12:00', end: '13:00', isBreak: true, label: 'Almuerzo' }]) },
+      { dayCode: 2, dayName: 'MARTES', active: 1, blocks: JSON.stringify([{ id: 'b-3', start: '08:00', end: '18:00', isBreak: false }, { id: 'b-4', start: '12:00', end: '13:00', isBreak: true, label: 'Almuerzo' }]) },
+      { dayCode: 3, dayName: 'MIÉRCOLES', active: 1, blocks: JSON.stringify([{ id: 'b-5', start: '08:00', end: '18:00', isBreak: false }, { id: 'b-6', start: '12:00', end: '13:00', isBreak: true, label: 'Almuerzo' }]) },
+      { dayCode: 4, dayName: 'JUEVES', active: 1, blocks: JSON.stringify([{ id: 'b-7', start: '08:00', end: '18:00', isBreak: false }, { id: 'b-8', start: '12:00', end: '13:00', isBreak: true, label: 'Almuerzo' }]) },
+      { dayCode: 5, dayName: 'VIERNES', active: 1, blocks: JSON.stringify([{ id: 'b-9', start: '08:00', end: '18:00', isBreak: false }, { id: 'b-10', start: '12:00', end: '13:00', isBreak: true, label: 'Almuerzo' }]) },
+      { dayCode: 6, dayName: 'SÁBADO', active: 1, blocks: JSON.stringify([{ id: 'b-11', start: '08:00', end: '15:00', isBreak: false }]) },
       { dayCode: 7, dayName: 'DOMINGO', active: 0, blocks: JSON.stringify([]) },
     ];
 
@@ -294,7 +333,7 @@ export async function initDatabase(): Promise<mysql.Pool> {
     }
   }
 
-  console.log(`✅ Base de datos MySQL (XAMPP) "${DB_NAME}" inicializada y lista.`);
+  console.log(`✅ Base de datos MySQL (XAMPP) "${DB_NAME}" inicializada con soporte de roles (Admin, Empleado, Cliente).`);
   return pool;
 }
 

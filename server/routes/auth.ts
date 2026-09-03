@@ -12,7 +12,7 @@ const LOCKOUT_MINUTES = 15;
 // POST /api/auth/register
 authRouter.post('/register', async (req: Request, res: Response) => {
   try {
-    const { name, businessName, category, email, phone, password } = req.body;
+    const { name, businessName, category, email, phone, password, role = 'admin', professionalId = null, clientId = null } = req.body;
 
     if (!name || !email || !password) {
       return res.status(400).json({ error: 'Por favor completa todos los campos requeridos (nombre, correo y contraseña).' });
@@ -34,18 +34,18 @@ authRouter.post('/register', async (req: Request, res: Response) => {
     // Hash password
     const passwordHash = await bcrypt.hash(password, 10);
     const userId = `usr-${Date.now()}`;
-    const userRole = 'admin';
+    const userRole = role === 'empleado' || role === 'cliente' ? role : 'admin';
     const createdAt = new Date().toISOString();
 
     // Insert user
     await pool.query(
-      `INSERT INTO users (id, name, email, password_hash, role, failed_attempts, created_at)
-       VALUES (?, ?, ?, ?, ?, 0, ?)`,
-      [userId, name.trim(), cleanEmail, passwordHash, userRole, createdAt]
+      `INSERT INTO users (id, name, email, password_hash, role, professional_id, client_id, failed_attempts, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, 0, ?)`,
+      [userId, name.trim(), cleanEmail, passwordHash, userRole, professionalId, clientId, createdAt]
     );
 
-    // Update business configuration with their new business info if provided
-    if (businessName && businessName.trim()) {
+    // Update business configuration with their new business info if provided by admin
+    if (userRole === 'admin' && businessName && businessName.trim()) {
       await pool.query(
         `UPDATE business_config SET 
           name = ?, category = ?, phone = ?, email = ?
@@ -66,6 +66,8 @@ authRouter.post('/register', async (req: Request, res: Response) => {
         email: cleanEmail,
         name: name.trim(),
         role: userRole,
+        professionalId,
+        clientId,
       },
       JWT_SECRET,
       { expiresIn: '30d' }
@@ -77,7 +79,7 @@ authRouter.post('/register', async (req: Request, res: Response) => {
        VALUES (?, ?, ?, ?, ?, ?, ?)`,
       [
         `act-${Date.now()}`,
-        `Nueva cuenta de negocio registrada: ${businessName || name}`,
+        `Nueva cuenta registrada (${userRole}): ${businessName || name}`,
         name.trim(),
         'Justo ahora',
         'new_client',
@@ -93,6 +95,8 @@ authRouter.post('/register', async (req: Request, res: Response) => {
         name: name.trim(),
         email: cleanEmail,
         role: userRole,
+        professionalId,
+        clientId,
       },
       message: '¡Tu cuenta ha sido creada exitosamente! Bienvenido a Turnia.',
     });
@@ -178,6 +182,8 @@ authRouter.post('/login', async (req: Request, res: Response) => {
         email: user.email,
         name: user.name,
         role: user.role,
+        professionalId: user.professional_id || null,
+        clientId: user.client_id || null,
       },
       JWT_SECRET,
       { expiresIn }
@@ -189,7 +195,7 @@ authRouter.post('/login', async (req: Request, res: Response) => {
        VALUES (?, ?, ?, ?, ?, ?, ?)`,
       [
         `act-${Date.now()}`,
-        `Inicio de sesión exitoso: ${user.name}`,
+        `Inicio de sesión exitoso: ${user.name} (${user.role})`,
         user.name,
         'Justo ahora',
         'schedule_update',
@@ -205,6 +211,8 @@ authRouter.post('/login', async (req: Request, res: Response) => {
         name: user.name,
         email: user.email,
         role: user.role,
+        professionalId: user.professional_id || null,
+        clientId: user.client_id || null,
       },
       message: 'Inicio de sesión exitoso',
     });
@@ -228,7 +236,6 @@ authRouter.post('/forgot-password', async (req: Request, res: Response) => {
     const [rows]: any = await pool.query('SELECT * FROM users WHERE LOWER(email) = ?', [cleanEmail]);
 
     if (rows.length === 0) {
-      // Security practice: Don't leak if email exists or not, but return friendly message
       return res.json({
         success: true,
         message: 'Si el correo está registrado en la plataforma, recibirás un código de recuperación de 6 dígitos.',
@@ -236,9 +243,8 @@ authRouter.post('/forgot-password', async (req: Request, res: Response) => {
     }
 
     const user = rows[0];
-    // Generate 6-digit verification code
     const verificationCode = String(Math.floor(100000 + Math.random() * 900000));
-    const expiry = new Date(Date.now() + 15 * 60 * 1000).toISOString(); // 15 mins
+    const expiry = new Date(Date.now() + 15 * 60 * 1000).toISOString();
 
     await pool.query('UPDATE users SET reset_token = ?, reset_token_expiry = ? WHERE id = ?', [
       verificationCode,
@@ -251,11 +257,42 @@ authRouter.post('/forgot-password', async (req: Request, res: Response) => {
     res.json({
       success: true,
       message: `Código de recuperación generado correctamente.`,
-      code: verificationCode, // Returned for instant UI feedback / testing
+      code: verificationCode,
     });
   } catch (err: any) {
     console.error('Error en forgot-password:', err);
     res.status(500).json({ error: 'Error al solicitar la recuperación de contraseña.' });
+  }
+});
+
+// POST /api/auth/verify-code
+authRouter.post('/verify-code', async (req: Request, res: Response) => {
+  try {
+    const { email, code } = req.body;
+
+    if (!email || !code) {
+      return res.status(400).json({ error: 'Por favor ingresa correo y código.' });
+    }
+
+    const pool = getPool();
+    const [rows]: any = await pool.query('SELECT * FROM users WHERE LOWER(email) = ? AND reset_token = ?', [
+      email.trim().toLowerCase(),
+      code.trim(),
+    ]);
+
+    if (rows.length === 0) {
+      return res.status(400).json({ error: 'Código de verificación incorrecto.' });
+    }
+
+    const user = rows[0];
+    if (new Date(user.reset_token_expiry) < new Date()) {
+      return res.status(400).json({ error: 'El código de verificación ha expirado. Solicita uno nuevo.' });
+    }
+
+    res.json({ success: true, message: 'Código verificado correctamente.' });
+  } catch (err: any) {
+    console.error('Error en verify-code:', err);
+    res.status(500).json({ error: 'Error al verificar el código.' });
   }
 });
 
@@ -265,53 +302,34 @@ authRouter.post('/reset-password', async (req: Request, res: Response) => {
     const { email, code, newPassword } = req.body;
 
     if (!email || !code || !newPassword) {
-      return res.status(400).json({ error: 'Todos los campos son obligatorios (correo, código y nueva contraseña).' });
+      return res.status(400).json({ error: 'Por favor completa todos los campos requeridos.' });
     }
 
     if (newPassword.length < 6) {
-      return res.status(400).json({ error: 'La nueva contraseña debe tener al menos 6 caracteres por seguridad.' });
+      return res.status(400).json({ error: 'La nueva contraseña debe tener al menos 6 caracteres.' });
     }
 
-    const cleanEmail = email.trim().toLowerCase();
     const pool = getPool();
-    const [rows]: any = await pool.query('SELECT * FROM users WHERE LOWER(email) = ?', [cleanEmail]);
+    const cleanEmail = email.trim().toLowerCase();
+
+    const [rows]: any = await pool.query('SELECT * FROM users WHERE LOWER(email) = ? AND reset_token = ?', [
+      cleanEmail,
+      code.trim(),
+    ]);
 
     if (rows.length === 0) {
-      return res.status(400).json({ error: 'No se encontró una solicitud válida para este correo.' });
+      return res.status(400).json({ error: 'Código de verificación inválido o sesión caducada.' });
     }
 
     const user = rows[0];
-
-    if (!user.reset_token || user.reset_token !== code.trim()) {
-      return res.status(400).json({ error: 'El código de verificación es incorrecto.' });
+    if (new Date(user.reset_token_expiry) < new Date()) {
+      return res.status(400).json({ error: 'El código de recuperación ha expirado.' });
     }
 
-    if (!user.reset_token_expiry || new Date(user.reset_token_expiry) < new Date()) {
-      return res.status(400).json({ error: 'El código de verificación ha expirado. Solicita uno nuevo.' });
-    }
-
-    // Hash new password
     const newHash = await bcrypt.hash(newPassword, 10);
-
-    // Update user password and clear reset token & lockouts
     await pool.query(
       'UPDATE users SET password_hash = ?, reset_token = NULL, reset_token_expiry = NULL, failed_attempts = 0, lock_until = NULL WHERE id = ?',
       [newHash, user.id]
-    );
-
-    // Audit activity
-    await pool.query(
-      `INSERT INTO activities (id, title, client_name, time_ago, type, amount, timestamp)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [
-        `act-${Date.now()}`,
-        `Contraseña restablecida exitosamente: ${user.name}`,
-        user.name,
-        'Justo ahora',
-        'schedule_update',
-        null,
-        new Date().toISOString(),
-      ]
     );
 
     res.json({
@@ -336,15 +354,27 @@ authRouter.get('/me', async (req: Request, res: Response) => {
     const decoded: any = jwt.verify(token, JWT_SECRET);
 
     const pool = getPool();
-    const [rows]: any = await pool.query('SELECT id, name, email, role, created_at FROM users WHERE id = ?', [
-      decoded.id,
-    ]);
+    const [rows]: any = await pool.query(
+      'SELECT id, name, email, role, professional_id, client_id, created_at FROM users WHERE id = ?',
+      [decoded.id]
+    );
 
     if (rows.length === 0) {
       return res.status(401).json({ error: 'Usuario no encontrado o sesión inválida.' });
     }
 
-    res.json({ user: rows[0] });
+    const user = rows[0];
+    res.json({
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        professionalId: user.professional_id || null,
+        clientId: user.client_id || null,
+        createdAt: user.created_at,
+      },
+    });
   } catch (err: any) {
     res.status(401).json({ error: 'Sesión expirada o inválida. Por favor inicia sesión de nuevo.' });
   }

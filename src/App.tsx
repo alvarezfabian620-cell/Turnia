@@ -10,6 +10,7 @@ import {
   BusinessConfig,
   ReservationStatus,
   AuthUser,
+  UserRole,
 } from './types';
 import { api } from './services/api';
 import { Sidebar } from './components/Sidebar';
@@ -23,6 +24,9 @@ import { ProfesionalesView } from './components/ProfesionalesView';
 import { HorariosView } from './components/HorariosView';
 import { ReportesView } from './components/ReportesView';
 import { ConfiguracionView } from './components/ConfiguracionView';
+import { EmpleadoDashboardView } from './components/EmpleadoDashboardView';
+import { EmpleadoAgendaView } from './components/EmpleadoAgendaView';
+import { ClientePortalView } from './components/ClientePortalView';
 import { LoginView } from './components/LoginView';
 import { NewReservationModal } from './components/NewReservationModal';
 import { ReservationDetailsModal } from './components/ReservationDetailsModal';
@@ -32,7 +36,7 @@ import { AdminProfileModal } from './components/AdminProfileModal';
 import { Toast } from './components/Toast';
 import { wsService } from './services/websocket';
 
-export function App() {
+export default function App() {
   // Authentication States
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [authUser, setAuthUser] = useState<AuthUser | null>(null);
@@ -62,21 +66,21 @@ export function App() {
     logoUrl: '',
     acceptNewBookings: true,
     showPricesPublicly: true,
-    timeZone: 'America/Bogota',
+    timeZone: 'UTC-5 (Bogotá, Lima, Quito)',
   });
 
-  // Modals
+  // Modal States
   const [isNewBookingOpen, setIsNewBookingOpen] = useState(false);
-  const [bookingPrefill, setBookingPrefill] = useState<Partial<Reservation> | undefined>(undefined);
+  const [bookingPrefill, setBookingPrefill] = useState<Partial<Reservation> | undefined>();
   const [selectedReservation, setSelectedReservation] = useState<Reservation | null>(null);
   const [isNewServiceOpen, setIsNewServiceOpen] = useState(false);
   const [editingService, setEditingService] = useState<ServiceItem | null>(null);
   const [isNewProfessionalOpen, setIsNewProfessionalOpen] = useState(false);
   const [editingProfessional, setEditingProfessional] = useState<Professional | null>(null);
-  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isAdminProfileOpen, setIsAdminProfileOpen] = useState(false);
 
-  // Notification Toast
-  const [toast, setToast] = useState<{ message: string; type?: 'success' | 'info' | 'error' } | null>(
+  // Toast State
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'info' | 'error' } | null>(
     null
   );
 
@@ -130,6 +134,9 @@ export function App() {
           const res = await api.auth.getMe();
           setAuthUser(res.user);
           setIsAuthenticated(true);
+          if (res.user.role === 'empleado') setCurrentView('empleado_dashboard');
+          else if (res.user.role === 'cliente') setCurrentView('cliente_portal');
+          else setCurrentView('dashboard');
           await fetchAllData();
         } catch (err) {
           console.warn('Token expired or invalid:', err);
@@ -178,71 +185,72 @@ export function App() {
           setActivities(act);
         }
       } catch (err) {
-        console.warn('Error refreshing data from WS event:', err);
+        console.warn('WebSocket data sync failed:', err);
       }
     });
 
     return () => {
       unsubNotif();
       unsubData();
+      wsService.disconnect();
     };
   }, [isAuthenticated]);
 
-  // Auth Handlers
-  const handleLoginSuccess = async (user: AuthUser) => {
-    setAuthUser(user);
-    setIsAuthenticated(true);
-    showToast(`¡Bienvenido de nuevo, ${user.name}!`);
-    await fetchAllData();
-  };
-
-  const handleLogout = () => {
-    wsService.disconnect();
-    api.auth.logout();
-    setIsAuthenticated(false);
-    setAuthUser(null);
-    showToast('Has cerrado sesión correctamente.', 'info');
-  };
-
-  // Notification Drawer Handlers
-  const handleClearAllNotifications = async () => {
-    try {
-      await api.activities.clearAll();
-      setActivities([]);
-      showToast('Todas las notificaciones han sido eliminadas.', 'info');
-    } catch (err: any) {
-      showToast('Error al limpiar notificaciones', 'error');
+  // Handle Role Switcher for instant testing
+  const handleSwitchRole = (newRole: UserRole) => {
+    if (newRole === 'empleado') {
+      const empProf = professionals.find((p) => p.name.includes('Carlos') || p.id === 'prof-1') || professionals[0];
+      setAuthUser({
+        id: 'usr-emp-1',
+        name: empProf ? empProf.name : 'Carlos Mendoza',
+        email: empProf?.email || 'carlos@turnia.com',
+        role: 'empleado',
+        professionalId: empProf ? empProf.id : 'prof-1',
+      });
+      setCurrentView('empleado_dashboard');
+      showToast(`Cambiado al rol Empleado (${empProf ? empProf.name : 'Carlos Mendoza'})`, 'info');
+    } else if (newRole === 'cliente') {
+      setAuthUser({
+        id: 'usr-cli-1',
+        name: 'Andrés Felipe Castro',
+        email: 'cliente@turnia.com',
+        role: 'cliente',
+        clientId: 'cli-1',
+      });
+      setCurrentView('cliente_portal');
+      showToast('Cambiado al rol Cliente (Andrés Felipe)', 'info');
+    } else {
+      setAuthUser({
+        id: 'usr-admin',
+        name: 'Administrador Turnia',
+        email: 'admin@turnia.com',
+        role: 'admin',
+      });
+      setCurrentView('dashboard');
+      showToast('Cambiado al rol Administrador General', 'info');
     }
   };
 
-  const handleDeleteNotification = async (id: string) => {
-    try {
-      await api.activities.delete(id);
-      setActivities((prev) => prev.filter((a) => a.id !== id));
-    } catch (err: any) {
-      console.warn('Error deleting notification:', err);
-    }
-  };
+  // Find logged in professional object if employee
+  const loggedProfessional = professionals.find(
+    (p) => (authUser?.professionalId && p.id === authUser.professionalId) ||
+           p.name.toLowerCase() === authUser?.name.toLowerCase()
+  ) || professionals[0];
 
   // Handlers for Reservations
-  const handleCreateReservation = async (newResData: Omit<Reservation, 'id' | 'createdAt'>) => {
+  const handleCreateReservation = async (reservationData: Omit<Reservation, 'id' | 'createdAt'>) => {
     try {
-      const created = await api.reservations.create(newResData);
+      const created = await api.reservations.create(reservationData);
       setReservations((prev) => [created, ...prev]);
-
-      const [updatedClients, updatedActivities, updatedProfs] = await Promise.all([
-        api.clients.getAll(),
+      const [updatedActivities, updatedClients] = await Promise.all([
         api.activities.getAll(),
-        api.professionals.getAll(),
+        api.clients.getAll(),
       ]);
-      setClients(updatedClients);
       setActivities(updatedActivities);
-      setProfessionals(updatedProfs);
-
-      showToast(`Reserva para ${created.clientName} creada correctamente.`);
+      setClients(updatedClients);
+      showToast('¡Cita agendada exitosamente!');
     } catch (err: any) {
-      console.error('Error creating reservation:', err);
-      showToast(err.message || 'Error al crear la reserva', 'error');
+      showToast(err.message || 'Error al agendar reserva', 'error');
     }
   };
 
@@ -250,23 +258,29 @@ export function App() {
     try {
       const updated = await api.reservations.updateStatus(id, newStatus);
       setReservations((prev) => prev.map((r) => (r.id === id ? updated : r)));
+      if (selectedReservation?.id === id) {
+        setSelectedReservation(updated);
+      }
       const updatedActivities = await api.activities.getAll();
       setActivities(updatedActivities);
-      showToast(`Estado de la reserva actualizado a "${newStatus}".`);
+      showToast(`Cita marcada como "${newStatus.replace('_', ' ')}".`);
     } catch (err: any) {
       showToast('Error al actualizar estado', 'error');
     }
   };
 
-  const handleCancelReservation = async (reservation: Reservation) => {
+  const handleCancelReservation = async (res: Reservation) => {
     try {
-      const updated = await api.reservations.updateStatus(reservation.id, 'cancelada');
-      setReservations((prev) => prev.map((r) => (r.id === reservation.id ? updated : r)));
+      const updated = await api.reservations.updateStatus(res.id, 'cancelada');
+      setReservations((prev) => prev.map((r) => (r.id === res.id ? updated : r)));
+      if (selectedReservation?.id === res.id) {
+        setSelectedReservation(updated);
+      }
       const updatedActivities = await api.activities.getAll();
       setActivities(updatedActivities);
-      showToast(`Reserva de ${reservation.clientName} ha sido cancelada.`, 'info');
+      showToast('Cita cancelada correctamente.', 'info');
     } catch (err: any) {
-      showToast('Error al cancelar la reserva', 'error');
+      showToast('Error al cancelar reserva', 'error');
     }
   };
 
@@ -274,52 +288,54 @@ export function App() {
     try {
       await api.reservations.delete(id);
       setReservations((prev) => prev.filter((r) => r.id !== id));
+      if (selectedReservation?.id === id) {
+        setSelectedReservation(null);
+      }
       const updatedActivities = await api.activities.getAll();
       setActivities(updatedActivities);
-      showToast('Reserva eliminada permanentemente.', 'info');
+      showToast('Cita eliminada.', 'info');
     } catch (err: any) {
       showToast('Error al eliminar reserva', 'error');
     }
   };
 
   // Handlers for Services
-  const handleSaveService = async (serviceData: Omit<ServiceItem, 'id'>) => {
+  const handleCreateService = async (serviceData: Omit<ServiceItem, 'id'>) => {
     try {
-      if (editingService) {
-        const updated = await api.services.update(editingService.id, serviceData);
-        setServices((prev) => prev.map((s) => (s.id === editingService.id ? updated : s)));
-        showToast(`Servicio "${serviceData.name}" actualizado.`);
-        setEditingService(null);
-      } else {
-        const created = await api.services.create(serviceData);
-        setServices((prev) => [created, ...prev]);
-        showToast(`Servicio "${serviceData.name}" agregado al catálogo.`);
-      }
-      const updatedActivities = await api.activities.getAll();
-      setActivities(updatedActivities);
+      const created = await api.services.create(serviceData);
+      setServices((prev) => [...prev, created]);
+      showToast(`Servicio "${created.name}" creado con éxito.`);
     } catch (err: any) {
-      showToast('Error al guardar el servicio', 'error');
+      showToast('Error al crear servicio', 'error');
     }
   };
 
-  const handleToggleServiceActive = async (serviceId: string) => {
+  const handleUpdateService = async (id: string, serviceData: Partial<ServiceItem>) => {
     try {
-      const service = services.find((s) => s.id === serviceId);
-      if (!service) return;
-      const updated = await api.services.update(serviceId, { active: !service.active });
-      setServices((prev) => prev.map((s) => (s.id === serviceId ? updated : s)));
-      showToast(`Servicio ${updated.active ? 'activado' : 'desactivado'} con éxito.`, 'info');
+      const updated = await api.services.update(id, serviceData);
+      setServices((prev) => prev.map((s) => (s.id === id ? updated : s)));
+      showToast(`Servicio "${updated.name}" actualizado.`);
     } catch (err: any) {
       showToast('Error al actualizar servicio', 'error');
     }
   };
 
-  const handleDeleteService = async (serviceId: string) => {
+  const handleToggleServiceActive = async (id: string) => {
+    const s = services.find((srv) => srv.id === id);
+    if (!s) return;
     try {
-      await api.services.delete(serviceId);
-      setServices((prev) => prev.filter((s) => s.id !== serviceId));
-      const updatedActivities = await api.activities.getAll();
-      setActivities(updatedActivities);
+      const updated = await api.services.update(id, { active: !s.active });
+      setServices((prev) => prev.map((srv) => (srv.id === id ? updated : srv)));
+      showToast(`Servicio ${updated.active ? 'activado' : 'desactivado'}.`);
+    } catch (err: any) {
+      showToast('Error al cambiar estado del servicio', 'error');
+    }
+  };
+
+  const handleDeleteService = async (id: string) => {
+    try {
+      await api.services.delete(id);
+      setServices((prev) => prev.filter((s) => s.id !== id));
       showToast('Servicio eliminado del catálogo.', 'info');
     } catch (err: any) {
       showToast('Error al eliminar servicio', 'error');
@@ -327,24 +343,23 @@ export function App() {
   };
 
   // Handlers for Professionals
-  const handleSaveProfessional = async (
-    profData: Omit<Professional, 'id' | 'monthlyBookings'>
-  ) => {
+  const handleCreateProfessional = async (profData: Omit<Professional, 'id' | 'monthlyBookings'>) => {
     try {
-      if (editingProfessional) {
-        const updated = await api.professionals.update(editingProfessional.id, profData);
-        setProfessionals((prev) => prev.map((p) => (p.id === editingProfessional.id ? updated : p)));
-        showToast(`Profesional "${profData.name}" actualizado.`);
-        setEditingProfessional(null);
-      } else {
-        const created = await api.professionals.create(profData);
-        setProfessionals((prev) => [created, ...prev]);
-        showToast(`Profesional "${profData.name}" agregado al equipo.`);
-      }
-      const updatedActivities = await api.activities.getAll();
-      setActivities(updatedActivities);
+      const created = await api.professionals.create(profData);
+      setProfessionals((prev) => [...prev, created]);
+      showToast(`Profesional "${created.name}" registrado.`);
     } catch (err: any) {
-      showToast('Error al guardar profesional', 'error');
+      showToast('Error al registrar profesional', 'error');
+    }
+  };
+
+  const handleUpdateProfessional = async (id: string, profData: Partial<Professional>) => {
+    try {
+      const updated = await api.professionals.update(id, profData);
+      setProfessionals((prev) => prev.map((p) => (p.id === id ? updated : p)));
+      showToast(`Profesional "${updated.name}" actualizado.`);
+    } catch (err: any) {
+      showToast('Error al actualizar profesional', 'error');
     }
   };
 
@@ -352,21 +367,17 @@ export function App() {
     try {
       await api.professionals.delete(id);
       setProfessionals((prev) => prev.filter((p) => p.id !== id));
-      const updatedActivities = await api.activities.getAll();
-      setActivities(updatedActivities);
-      showToast('Profesional eliminado del equipo.', 'info');
+      showToast('Profesional eliminado.', 'info');
     } catch (err: any) {
       showToast('Error al eliminar profesional', 'error');
     }
   };
 
   // Handlers for Clients
-  const handleAddClient = async (clientData: Omit<ClientItem, 'id'>) => {
+  const handleAddClient = async (clientData: Omit<ClientItem, 'id' | 'totalVisits' | 'lastVisit'>) => {
     try {
       const created = await api.clients.create(clientData);
       setClients((prev) => [created, ...prev]);
-      const updatedActivities = await api.activities.getAll();
-      setActivities(updatedActivities);
       showToast(`Cliente "${clientData.name}" registrado.`);
     } catch (err: any) {
       showToast('Error al registrar cliente', 'error');
@@ -389,7 +400,7 @@ export function App() {
       setClients((prev) => prev.filter((c) => c.id !== id));
       const updatedActivities = await api.activities.getAll();
       setActivities(updatedActivities);
-      showToast('Cliente eliminado correctamente.', 'info');
+      showToast('Cliente y cuenta eliminados correctamente.', 'info');
     } catch (err: any) {
       showToast('Error al eliminar cliente', 'error');
     }
@@ -428,80 +439,149 @@ export function App() {
     return (
       <div className="min-h-screen bg-[#e8ecf2] flex items-center justify-center p-4">
         <div className="flex flex-col items-center gap-3">
-          <div className="w-10 h-10 border-3 border-[#1e2b82] border-t-transparent rounded-full animate-spin" />
-          <p className="text-xs font-bold text-[#1e2b82] tracking-wider uppercase">Iniciando Turnia...</p>
+          <div className="w-10 h-10 border-3 border-[#24389c] border-t-transparent rounded-full animate-spin"></div>
+          <p className="text-sm font-semibold text-[#191c1d]">Cargando Turnia...</p>
         </div>
       </div>
     );
   }
 
-  // If NOT authenticated, render the Login Screen
+  // Not authenticated -> Show Login/Register
   if (!isAuthenticated) {
     return (
       <LoginView
-        onLoginSuccess={handleLoginSuccess}
-        businessName={businessConfig?.name || 'TURNIA'}
-        logoUrl={businessConfig?.logoUrl}
+        onLoginSuccess={async (user) => {
+          setAuthUser(user);
+          setIsAuthenticated(true);
+          if (user.role === 'empleado') setCurrentView('empleado_dashboard');
+          else if (user.role === 'cliente') setCurrentView('cliente_portal');
+          else setCurrentView('dashboard');
+          await fetchAllData();
+          showToast(`¡Bienvenido de nuevo, ${user.name}!`);
+        }}
       />
     );
   }
 
-  // Real Dynamic Calculations
-  const now = new Date();
-  const currentMonthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-  const monthlyRevenue = (reservations || [])
-    .filter((r) => r.status !== 'cancelada' && r.date && r.date.startsWith(currentMonthStr))
+  // Calculate stats
+  const monthlyRevenue = reservations
+    .filter((r) => r.status === 'completada' || r.status === 'confirmada')
     .reduce((sum, r) => sum + (Number(r.price) || 0), 0);
-
-  const pendingCount = (reservations || []).filter((r) => r.status === 'pendiente').length;
+  const pendingCount = reservations.filter((r) => r.status === 'pendiente').length;
 
   return (
-    <div className="min-h-screen bg-[#f8f9fa] text-[#191c1d] flex flex-col font-sans">
-      {/* Sidebar Navigation */}
+    <div className="flex min-h-screen bg-[#f8f9fa] text-[#191c1d] font-sans">
+      {/* Toast */}
+      {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
+
+      {/* Dynamic Role Sidebar */}
       <Sidebar
         currentView={currentView}
-        onNavigate={(view) => {
-          setCurrentView(view);
+        onNavigate={(v) => {
+          setCurrentView(v);
           setSearchQuery('');
         }}
         pendingCount={pendingCount}
-        onOpenProfile={() => setIsProfileOpen(true)}
-        onLogout={handleLogout}
+        onOpenProfile={() => setIsAdminProfileOpen(true)}
+        onLogout={() => {
+          api.auth.logout();
+          setIsAuthenticated(false);
+          setAuthUser(null);
+          showToast('Has cerrado sesión correctamente.', 'info');
+        }}
         isMobileOpen={isMobileMenuOpen}
         onCloseMobile={() => setIsMobileMenuOpen(false)}
         businessConfig={businessConfig}
         user={authUser}
       />
 
-      {/* Main Content Layout */}
-      <div className="md:pl-[260px] flex flex-col min-h-screen flex-1">
-        {/* Top Header */}
+      {/* Main Layout Area */}
+      <div className="flex-1 md:ml-[260px] flex flex-col min-w-0">
+        {/* Dynamic Role Header */}
         <Header
           currentView={currentView}
           onOpenNewBooking={() => handleOpenBookingModal()}
-          onOpenProfile={() => setIsProfileOpen(true)}
+          onOpenProfile={() => setIsAdminProfileOpen(true)}
           onOpenMobileMenu={() => setIsMobileMenuOpen(true)}
           activities={activities}
-          onNavigate={(view) => {
-            setCurrentView(view);
+          onNavigate={(v) => setCurrentView(v)}
+          onClearNotifications={async () => {
+            try {
+              await api.activities.clearAll();
+              setActivities([]);
+              showToast('Notificaciones borradas.', 'info');
+            } catch {
+              showToast('Error al limpiar notificaciones', 'error');
+            }
           }}
-          onClearNotifications={handleClearAllNotifications}
-          onDeleteNotification={handleDeleteNotification}
+          onDeleteNotification={async (id) => {
+            try {
+              await api.activities.delete(id);
+              setActivities((prev) => prev.filter((a) => a.id !== id));
+            } catch {
+              showToast('Error al eliminar notificación', 'error');
+            }
+          }}
           isConnectedWS={isConnectedWS}
+          currentUser={authUser}
+          onSwitchRole={handleSwitchRole}
         />
 
-        {/* View Main Content Container */}
-        <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto">
+        {/* Dynamic Views Rendering based on Role & Navigation */}
+        <main className="flex-1 p-4 md:p-8 max-w-7xl w-full mx-auto">
           {isLoading ? (
-            <div className="flex items-center justify-center py-20 text-[#757684]">
+            <div className="h-64 flex items-center justify-center">
               <div className="flex flex-col items-center gap-3">
                 <div className="w-8 h-8 border-3 border-[#24389c] border-t-transparent rounded-full animate-spin"></div>
-                <p className="text-sm font-medium">Cargando datos de Turnia...</p>
+                <span className="text-xs text-[#757684]">Sincronizando datos...</span>
               </div>
             </div>
           ) : (
             <>
-              {currentView === 'dashboard' && (
+              {/* EMPLEADO SPECIFIC SCREENS */}
+              {(currentView === 'empleado_dashboard' || (authUser?.role === 'empleado' && currentView === 'dashboard')) && (
+                <EmpleadoDashboardView
+                  currentUser={authUser!}
+                  professional={loggedProfessional}
+                  reservations={reservations}
+                  services={services}
+                  onUpdateReservationStatus={handleUpdateReservationStatus}
+                  onOpenNewBookingForMe={() =>
+                    handleOpenBookingModal({
+                      professionalId: loggedProfessional?.id || '',
+                      professionalName: authUser?.name || '',
+                    })
+                  }
+                  onNavigate={setCurrentView}
+                />
+              )}
+
+              {currentView === 'empleado_agenda' && (
+                <EmpleadoAgendaView
+                  currentUser={authUser!}
+                  professional={loggedProfessional}
+                  reservations={reservations}
+                  services={services}
+                  onSelectReservation={(r) => setSelectedReservation(r)}
+                  onOpenNewBooking={handleOpenBookingModal}
+                  onUpdateReservationStatus={handleUpdateReservationStatus}
+                />
+              )}
+
+              {/* CLIENTE SPECIFIC SCREENS */}
+              {(currentView === 'cliente_portal' || (authUser?.role === 'cliente' && currentView === 'dashboard')) && (
+                <ClientePortalView
+                  currentUser={authUser!}
+                  reservations={reservations}
+                  services={services}
+                  businessConfig={businessConfig}
+                  onOpenNewBooking={() => handleOpenBookingModal()}
+                  onCancelReservation={handleCancelReservation}
+                />
+              )}
+
+              {/* SHARED / ADMIN SCREENS */}
+              {currentView === 'dashboard' && authUser?.role === 'admin' && (
                 <DashboardView
                   reservations={reservations}
                   activities={activities}
@@ -519,10 +599,27 @@ export function App() {
 
               {currentView === 'reservas' && (
                 <ReservasView
-                  reservations={reservations}
+                  reservations={
+                    authUser?.role === 'empleado'
+                      ? reservations.filter(
+                          (r) =>
+                            (loggedProfessional && r.professionalId === loggedProfessional.id) ||
+                            r.professionalName.toLowerCase() === authUser.name.toLowerCase()
+                        )
+                      : reservations
+                  }
                   professionals={professionals}
                   services={services}
-                  onOpenNewBooking={() => handleOpenBookingModal()}
+                  onOpenNewBooking={() =>
+                    handleOpenBookingModal(
+                      authUser?.role === 'empleado'
+                        ? {
+                            professionalId: loggedProfessional?.id || '',
+                            professionalName: authUser.name,
+                          }
+                        : undefined
+                    )
+                  }
                   onSelectReservation={(r) => setSelectedReservation(r)}
                   onEditReservation={(r) => setSelectedReservation(r)}
                   onCancelReservation={handleCancelReservation}
@@ -549,6 +646,8 @@ export function App() {
                     handleOpenBookingModal({
                       clientName: client.name,
                       clientPhone: client.phone,
+                      professionalId: authUser?.role === 'empleado' ? loggedProfessional?.id : undefined,
+                      professionalName: authUser?.role === 'empleado' ? authUser.name : undefined,
                     })
                   }
                   searchQuery={searchQuery}
@@ -559,15 +658,35 @@ export function App() {
                 <ServiciosView
                   services={services}
                   onOpenNewService={() => {
+                    if (authUser?.role === 'empleado') {
+                      showToast('Solo el administrador puede crear nuevos servicios.', 'error');
+                      return;
+                    }
                     setEditingService(null);
                     setIsNewServiceOpen(true);
                   }}
                   onEditService={(service) => {
+                    if (authUser?.role === 'empleado') {
+                      showToast('Solo el administrador puede editar servicios del catálogo.', 'error');
+                      return;
+                    }
                     setEditingService(service);
                     setIsNewServiceOpen(true);
                   }}
-                  onToggleActive={handleToggleServiceActive}
-                  onDeleteService={handleDeleteService}
+                  onToggleActive={(id) => {
+                    if (authUser?.role === 'empleado') {
+                      showToast('Solo el administrador puede cambiar el estado de servicios.', 'error');
+                      return;
+                    }
+                    handleToggleServiceActive(id);
+                  }}
+                  onDeleteService={(id) => {
+                    if (authUser?.role === 'empleado') {
+                      showToast('Solo el administrador puede eliminar servicios.', 'error');
+                      return;
+                    }
+                    handleDeleteService(id);
+                  }}
                   searchQuery={searchQuery}
                 />
               )}
@@ -648,8 +767,9 @@ export function App() {
           setIsNewServiceOpen(false);
           setEditingService(null);
         }}
-        onSave={handleSaveService}
-        editingService={editingService}
+        onSave={handleCreateService}
+        onUpdate={handleUpdateService}
+        initialData={editingService}
       />
 
       <NewProfessionalModal
@@ -658,29 +778,16 @@ export function App() {
           setIsNewProfessionalOpen(false);
           setEditingProfessional(null);
         }}
-        onSave={handleSaveProfessional}
-        editingProfessional={editingProfessional}
+        onSave={handleCreateProfessional}
+        onUpdate={handleUpdateProfessional}
+        initialData={editingProfessional}
       />
 
       <AdminProfileModal
-        isOpen={isProfileOpen}
-        onClose={() => setIsProfileOpen(false)}
-        onNavigateToSettings={() => setCurrentView('configuracion')}
-        onLogout={handleLogout}
-        config={businessConfig}
+        isOpen={isAdminProfileOpen}
+        onClose={() => setIsAdminProfileOpen(false)}
         user={authUser}
       />
-
-      {/* Toast Notification */}
-      {toast && (
-        <Toast
-          message={toast.message}
-          type={toast.type}
-          onClose={() => setToast(null)}
-        />
-      )}
     </div>
   );
 }
-
-export default App;

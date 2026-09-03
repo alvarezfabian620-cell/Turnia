@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { ActivityItem, ViewMode } from '../types';
+import { ActivityItem, ViewMode, AuthUser, UserRole } from '../types';
 
 interface HeaderProps {
   currentView: ViewMode;
@@ -11,6 +11,8 @@ interface HeaderProps {
   onClearNotifications?: () => void;
   onDeleteNotification?: (id: string) => void;
   isConnectedWS?: boolean;
+  currentUser?: AuthUser | null;
+  onSwitchRole?: (role: UserRole) => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -20,7 +22,8 @@ export const Header: React.FC<HeaderProps> = ({
   onNavigate,
   onClearNotifications,
   onDeleteNotification,
-  isConnectedWS = true,
+  currentUser,
+  onSwitchRole,
 }) => {
   const [showNotifications, setShowNotifications] = useState(false);
   const [readIds, setReadIds] = useState<Set<string>>(new Set());
@@ -50,6 +53,8 @@ export const Header: React.FC<HeaderProps> = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  const role = currentUser?.role || 'admin';
+
   return (
     <header className="flex justify-between items-center w-full h-[64px] px-4 md:px-8 bg-white border-b border-[#e1e3e4] sticky top-0 z-30 shadow-2xs">
       {/* Left side: Mobile menu button */}
@@ -63,8 +68,27 @@ export const Header: React.FC<HeaderProps> = ({
         </button>
       </div>
 
-      {/* Right side: Notifications, Help, Profile */}
+      {/* Right side: Role Switcher Tester, Notifications, Profile */}
       <div className="flex items-center gap-2 md:gap-3 ml-auto">
+        {/* Quick Role Tester Selector */}
+        {onSwitchRole && (
+          <div className="hidden sm:flex items-center gap-1.5 p-1 bg-[#f8f9fa] border border-[#e1e3e4] rounded-xl text-xs">
+            <span className="text-[10px] font-bold text-[#757684] uppercase tracking-wider pl-2">
+              Modo Rol:
+            </span>
+            <select
+              value={role}
+              onChange={(e) => onSwitchRole(e.target.value as UserRole)}
+              className="bg-white border border-[#e1e3e4] rounded-lg px-2.5 py-1 text-xs font-bold text-[#24389c] focus:outline-none cursor-pointer"
+              title="Cambiar de rol para probar las pantallas y permisos"
+            >
+              <option value="admin">👑 Administrador</option>
+              <option value="empleado">💼 Empleado (Carlos M.)</option>
+              <option value="cliente">👤 Cliente (Andrés C.)</option>
+            </select>
+          </div>
+        )}
+
         {/* Notifications Popover */}
         <div className="relative" ref={notifRef}>
           <button
@@ -120,7 +144,7 @@ export const Header: React.FC<HeaderProps> = ({
                       className="p-3.5 hover:bg-[#f8f9fa] transition-colors flex items-start gap-3 cursor-pointer group relative"
                       onClick={() => {
                         setShowNotifications(false);
-                        onNavigate('reservas');
+                        onNavigate(role === 'empleado' ? 'empleado_agenda' : role === 'cliente' ? 'cliente_portal' : 'reservas');
                       }}
                     >
                       <div className="w-8 h-8 rounded-xl bg-[#f3f4f5] flex items-center justify-center shrink-0 text-[#24389c] mt-0.5 border border-[#e1e3e4] group-hover:bg-[#dee0ff] transition-colors">
@@ -167,10 +191,10 @@ export const Header: React.FC<HeaderProps> = ({
         <button
           onClick={onOpenProfile}
           className="flex items-center gap-2 p-1 rounded-full hover:ring-2 hover:ring-[#24389c]/40 transition-all cursor-pointer"
-          title="Ver perfil de administrador"
+          title="Ver perfil de usuario"
         >
           <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-[#24389c] to-[#3f51b5] text-white flex items-center justify-center border border-[#e1e3e4] shadow-2xs font-bold text-xs">
-            <span>A</span>
+            <span>{currentUser?.name ? currentUser.name.slice(0, 2).toUpperCase() : 'US'}</span>
           </div>
         </button>
       </div>

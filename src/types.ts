@@ -1,3 +1,5 @@
+export type UserRole = 'admin' | 'empleado' | 'cliente';
+
 export type ViewMode =
   | 'dashboard'
   | 'reservas'
@@ -7,7 +9,16 @@ export type ViewMode =
   | 'profesionales'
   | 'horarios'
   | 'reportes'
-  | 'configuracion';
+  | 'configuracion'
+  // Empleado specific view modes
+  | 'empleado_dashboard'
+  | 'empleado_agenda'
+  | 'empleado_citas'
+  | 'empleado_clientes'
+  | 'empleado_perfil'
+  // Cliente specific view modes
+  | 'cliente_portal'
+  | 'cliente_citas';
 
 export type ReservationStatus = 'en_curso' | 'confirmada' | 'pendiente' | 'completada' | 'cancelada';
 
@@ -104,7 +115,10 @@ export interface AuthUser {
   id: string;
   name: string;
   email: string;
-  role: string;
+  role: UserRole;
+  professionalId?: string | null;
+  clientId?: string | null;
+  createdAt?: string;
 }
 
 export interface LoginResponse {
@@ -112,4 +126,3 @@ export interface LoginResponse {
   user: AuthUser;
   message: string;
 }
-
