@@ -79,7 +79,7 @@ export const ClientePortalView: React.FC<ClientePortalViewProps> = ({
 
       {/* 1. MAIN SECTION: CATÁLOGO DE SERVICIOS DISPONIBLES */}
       <div className="bg-white border border-[#e1e3e4] rounded-2xl p-6 shadow-2xs space-y-5">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#e1e3e4] pb-4">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-[#e1e3e4] pb-4">
           <div>
             <h3 className="font-bold text-xl text-[#191c1d] flex items-center gap-2 tracking-tight">
               <span className="material-symbols-outlined text-[#24389c] text-[24px]">content_cut</span>
@@ -90,16 +90,16 @@ export const ClientePortalView: React.FC<ClientePortalViewProps> = ({
             </p>
           </div>
 
-          {/* Category Filter Pills */}
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
+          {/* Clean Wrapped Category Filter */}
+          <div className="flex flex-wrap items-center gap-1.5 bg-[#f3f4f5] p-1.5 rounded-2xl border border-[#e1e3e4]">
             {categories.map((cat) => (
               <button
                 key={cat}
                 onClick={() => setActiveCategory(cat)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap capitalize ${
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer capitalize ${
                   activeCategory === cat
                     ? 'bg-[#24389c] text-white shadow-2xs'
-                    : 'bg-[#f3f4f5] text-[#454652] hover:bg-[#e8ecf2]'
+                    : 'text-[#454652] hover:text-[#191c1d] hover:bg-white/60'
                 }`}
               >
                 {cat}
