@@ -230,8 +230,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                         key={res.id}
                         onClick={() => onSelectReservation(res)}
                         className={`transition-colors cursor-pointer group ${
-                          index % 2 === 1 ? 'bg-[#f9fafb]' : 'bg-white'
-                        } hover:bg-[#dee0ff]/25`}
+                          index % 2 === 1 ? 'bg-[#eff1f4]' : 'bg-white'
+                        } hover:bg-[#dee0ff]/40`}
                       >
                         <td className="px-4 py-3.5 font-mono text-xs font-medium text-[#454652] whitespace-nowrap">
                           {res.time}

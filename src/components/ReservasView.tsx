@@ -323,8 +323,8 @@ export const ReservasView: React.FC<ReservasViewProps> = ({
                   <tr
                     key={res.id}
                     className={`transition-colors group cursor-pointer ${
-                      index % 2 === 1 ? 'bg-[#f9fafb]' : 'bg-white'
-                    } hover:bg-[#dee0ff]/25`}
+                      index % 2 === 1 ? 'bg-[#eff1f4]' : 'bg-white'
+                    } hover:bg-[#dee0ff]/40`}
                     onClick={() => onSelectReservation(res)}
                   >
                     <td className="py-4 px-4 whitespace-nowrap text-xs font-medium text-[#454652]">

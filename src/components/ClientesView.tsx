@@ -173,8 +173,8 @@ export const ClientesView: React.FC<ClientesViewProps> = ({
                   <tr
                     key={client.id}
                     className={`transition-colors ${
-                      index % 2 === 1 ? 'bg-[#f9fafb]' : 'bg-white'
-                    } hover:bg-[#dee0ff]/25`}
+                      index % 2 === 1 ? 'bg-[#eff1f4]' : 'bg-white'
+                    } hover:bg-[#dee0ff]/40`}
                   >
                     <td className="py-3.5 px-4 font-semibold text-[#191c1d]">
                       {client.name}
