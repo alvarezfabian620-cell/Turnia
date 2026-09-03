@@ -1,4 +1,17 @@
 import React, { useState } from 'react';
+import {
+  Mail,
+  Lock,
+  Eye,
+  EyeOff,
+  ArrowRight,
+  User,
+  Store,
+  CheckCircle2,
+  AlertCircle,
+  X,
+  KeyRound,
+} from 'lucide-react';
 import { api } from '../services/api';
 import { AuthUser } from '../types';
 
@@ -10,7 +23,6 @@ interface LoginViewProps {
 
 export const LoginView: React.FC<LoginViewProps> = ({
   onLoginSuccess,
-  businessName = 'TURNIA',
 }) => {
   // Mode: 'login' or 'register'
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
@@ -195,11 +207,11 @@ export const LoginView: React.FC<LoginViewProps> = ({
   };
 
   return (
-    <div className="min-h-screen bg-[#e8ecf2] flex items-center justify-center p-4 sm:p-6 lg:p-8 font-sans">
+    <div className="min-h-screen bg-[#eef1f6] flex items-center justify-center p-4 sm:p-6 lg:p-8 font-sans">
       {/* Background Decorative Circles */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
-        <div className="absolute -top-32 -left-32 w-96 h-96 bg-[#24389c]/10 rounded-full blur-3xl" />
-        <div className="absolute -bottom-32 -right-32 w-96 h-96 bg-[#3f51b5]/15 rounded-full blur-3xl" />
+        <div className="absolute -top-32 -left-32 w-96 h-96 bg-[#1a2b7b]/10 rounded-full blur-3xl" />
+        <div className="absolute -bottom-32 -right-32 w-96 h-96 bg-[#24389c]/15 rounded-full blur-3xl" />
       </div>
 
       {/* Main Login Card Container */}
@@ -222,18 +234,14 @@ export const LoginView: React.FC<LoginViewProps> = ({
             {/* Error & Success Messages */}
             {errorMessage && (
               <div className="mb-5 p-3.5 rounded-xl bg-[#ffdad6]/60 border border-[#ffdad6] text-[#93000a] text-xs flex items-start gap-2.5 animate-in fade-in duration-200">
-                <span className="material-symbols-outlined text-[18px] shrink-0 mt-0.5">
-                  error
-                </span>
+                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
                 <p className="font-medium leading-relaxed">{errorMessage}</p>
               </div>
             )}
 
             {successMessage && (
               <div className="mb-5 p-3.5 rounded-xl bg-[#dee0ff] border border-[#bac3ff] text-[#24389c] text-xs flex items-start gap-2.5 animate-in fade-in duration-200">
-                <span className="material-symbols-outlined text-[18px] shrink-0 mt-0.5">
-                  check_circle
-                </span>
+                <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5" />
                 <p className="font-medium leading-relaxed">{successMessage}</p>
               </div>
             )}
@@ -244,19 +252,19 @@ export const LoginView: React.FC<LoginViewProps> = ({
                 {/* Email Input */}
                 <div>
                   <label className="block text-[11px] font-bold uppercase text-[#454652] mb-1.5 tracking-wider">
-                    Correo electrónico
+                    CORREO ELECTRÓNICO
                   </label>
                   <div className="relative flex items-center">
-                    <span className="material-symbols-outlined absolute left-3.5 text-[#757684] text-[18px] pointer-events-none">
-                      mail
-                    </span>
+                    <div className="absolute left-3.5 text-[#757684] pointer-events-none flex items-center justify-center">
+                      <Mail className="w-4 h-4" />
+                    </div>
                     <input
                       type="email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="admin@turnia.com"
                       required
-                      className="w-full pl-10 pr-4 py-2.5 bg-white border border-[#e1e3e4] rounded-xl text-sm text-[#191c1d] placeholder-[#9e9fa8] focus:border-[#24389c] focus:ring-2 focus:ring-[#24389c]/15 outline-none transition-all"
+                      className="w-full pl-11 pr-4 py-2.5 bg-white border border-[#e1e3e4] rounded-xl text-sm text-[#191c1d] placeholder-[#9e9fa8] focus:border-[#24389c] focus:ring-2 focus:ring-[#24389c]/15 outline-none transition-all"
                     />
                   </div>
                 </div>
@@ -265,7 +273,7 @@ export const LoginView: React.FC<LoginViewProps> = ({
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
                     <label className="block text-[11px] font-bold uppercase text-[#454652] tracking-wider">
-                      Contraseña
+                      CONTRASEÑA
                     </label>
                     <button
                       type="button"
@@ -282,32 +290,34 @@ export const LoginView: React.FC<LoginViewProps> = ({
                   </div>
 
                   <div className="relative flex items-center">
-                    <span className="material-symbols-outlined absolute left-3.5 text-[#757684] text-[18px] pointer-events-none">
-                      lock
-                    </span>
+                    <div className="absolute left-3.5 text-[#757684] pointer-events-none flex items-center justify-center">
+                      <Lock className="w-4 h-4" />
+                    </div>
                     <input
                       type={showPassword ? 'text' : 'password'}
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="••••••"
                       required
-                      className="w-full pl-10 pr-10 py-2.5 bg-white border border-[#e1e3e4] rounded-xl text-sm text-[#191c1d] placeholder-[#9e9fa8] focus:border-[#24389c] focus:ring-2 focus:ring-[#24389c]/15 outline-none transition-all font-mono"
+                      className="w-full pl-11 pr-11 py-2.5 bg-white border border-[#e1e3e4] rounded-xl text-sm text-[#191c1d] placeholder-[#9e9fa8] focus:border-[#24389c] focus:ring-2 focus:ring-[#24389c]/15 outline-none transition-all font-mono"
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3.5 text-[#757684] hover:text-[#191c1d] transition-colors p-0.5"
+                      className="absolute right-3.5 text-[#757684] hover:text-[#191c1d] transition-colors p-1"
                       title={showPassword ? 'Ocultar contraseña' : 'Ver contraseña'}
                     >
-                      <span className="material-symbols-outlined text-[18px]">
-                        {showPassword ? 'visibility_off' : 'visibility'}
-                      </span>
+                      {showPassword ? (
+                        <EyeOff className="w-4 h-4" />
+                      ) : (
+                        <Eye className="w-4 h-4" />
+                      )}
                     </button>
                   </div>
                 </div>
 
                 {/* Remember Me Checkbox */}
-                <div className="flex items-center">
+                <div className="flex items-center pt-0.5">
                   <label className="flex items-center gap-2.5 cursor-pointer select-none">
                     <input
                       type="checkbox"
@@ -325,16 +335,14 @@ export const LoginView: React.FC<LoginViewProps> = ({
                 <button
                   type="submit"
                   disabled={isLoading}
-                  className="w-full py-3 px-4 bg-[#1e2b82] hover:bg-[#18236d] active:scale-[0.99] text-white rounded-xl text-sm font-bold shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 group disabled:opacity-70 disabled:cursor-not-allowed cursor-pointer"
+                  className="w-full py-3 px-4 bg-[#1e2b82] hover:bg-[#18236d] active:scale-[0.99] text-white rounded-xl text-sm font-bold shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 group disabled:opacity-70 disabled:cursor-not-allowed cursor-pointer mt-2"
                 >
                   {isLoading ? (
                     <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
                   ) : (
                     <>
                       <span>Iniciar sesión</span>
-                      <span className="material-symbols-outlined text-[18px] group-hover:translate-x-1 transition-transform">
-                        arrow_forward
-                      </span>
+                      <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                     </>
                   )}
                 </button>
@@ -350,9 +358,9 @@ export const LoginView: React.FC<LoginViewProps> = ({
                       Tu Nombre *
                     </label>
                     <div className="relative flex items-center">
-                      <span className="material-symbols-outlined absolute left-3 text-[#757684] text-[16px] pointer-events-none">
-                        person
-                      </span>
+                      <div className="absolute left-3 text-[#757684] pointer-events-none">
+                        <User className="w-4 h-4" />
+                      </div>
                       <input
                         type="text"
                         value={regName}
@@ -369,9 +377,9 @@ export const LoginView: React.FC<LoginViewProps> = ({
                       Nombre del Negocio *
                     </label>
                     <div className="relative flex items-center">
-                      <span className="material-symbols-outlined absolute left-3 text-[#757684] text-[16px] pointer-events-none">
-                        storefront
-                      </span>
+                      <div className="absolute left-3 text-[#757684] pointer-events-none">
+                        <Store className="w-4 h-4" />
+                      </div>
                       <input
                         type="text"
                         value={regBusinessName}
@@ -390,9 +398,9 @@ export const LoginView: React.FC<LoginViewProps> = ({
                       Correo Electrónico *
                     </label>
                     <div className="relative flex items-center">
-                      <span className="material-symbols-outlined absolute left-3 text-[#757684] text-[16px] pointer-events-none">
-                        mail
-                      </span>
+                      <div className="absolute left-3 text-[#757684] pointer-events-none">
+                        <Mail className="w-4 h-4" />
+                      </div>
                       <input
                         type="email"
                         value={regEmail}
@@ -426,9 +434,9 @@ export const LoginView: React.FC<LoginViewProps> = ({
                     Contraseña segura (mínimo 6 caracteres) *
                   </label>
                   <div className="relative flex items-center">
-                    <span className="material-symbols-outlined absolute left-3 text-[#757684] text-[16px] pointer-events-none">
-                      lock
-                    </span>
+                    <div className="absolute left-3 text-[#757684] pointer-events-none">
+                      <Lock className="w-4 h-4" />
+                    </div>
                     <input
                       type={showRegPassword ? 'text' : 'password'}
                       value={regPassword}
@@ -440,11 +448,13 @@ export const LoginView: React.FC<LoginViewProps> = ({
                     <button
                       type="button"
                       onClick={() => setShowRegPassword(!showRegPassword)}
-                      className="absolute right-3 text-[#757684] hover:text-[#191c1d] p-0.5"
+                      className="absolute right-3 text-[#757684] hover:text-[#191c1d] p-1"
                     >
-                      <span className="material-symbols-outlined text-[18px]">
-                        {showRegPassword ? 'visibility_off' : 'visibility'}
-                      </span>
+                      {showRegPassword ? (
+                        <EyeOff className="w-4 h-4" />
+                      ) : (
+                        <Eye className="w-4 h-4" />
+                      )}
                     </button>
                   </div>
                 </div>
@@ -460,9 +470,7 @@ export const LoginView: React.FC<LoginViewProps> = ({
                   ) : (
                     <>
                       <span>Crear cuenta y comenzar</span>
-                      <span className="material-symbols-outlined text-[18px] group-hover:translate-x-1 transition-transform">
-                        arrow_forward
-                      </span>
+                      <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                     </>
                   )}
                 </button>
@@ -556,13 +564,13 @@ export const LoginView: React.FC<LoginViewProps> = ({
           </div>
 
           {/* Brand Name */}
-          <h2 className="text-3xl font-extrabold text-white tracking-[0.2em] uppercase font-sans">
-            {businessName}
+          <h2 className="text-3xl font-extrabold text-white tracking-[0.25em] uppercase font-sans">
+            TURNIA
           </h2>
 
           {/* Subtitle */}
           <p className="text-xs font-bold uppercase tracking-[0.3em] text-[#bac3ff] mt-2 font-sans">
-            Gestión & Agenda
+            GESTIÓN & AGENDA
           </p>
         </div>
       </div>
@@ -575,7 +583,7 @@ export const LoginView: React.FC<LoginViewProps> = ({
             <div className="flex justify-between items-center pb-4 border-b border-[#f3f4f5] mb-6">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-[#dee0ff] text-[#24389c] flex items-center justify-center">
-                  <span className="material-symbols-outlined text-[22px]">lock_reset</span>
+                  <KeyRound className="w-5 h-5" />
                 </div>
                 <div>
                   <h3 className="font-bold text-lg text-[#191c1d]">Recuperar Contraseña</h3>
@@ -586,23 +594,23 @@ export const LoginView: React.FC<LoginViewProps> = ({
               </div>
               <button
                 onClick={() => setShowForgotModal(false)}
-                className="p-1 text-[#757684] hover:text-[#191c1d] rounded-lg"
+                className="p-1 text-[#757684] hover:text-[#191c1d] rounded-lg cursor-pointer"
               >
-                <span className="material-symbols-outlined text-[20px]">close</span>
+                <X className="w-5 h-5" />
               </button>
             </div>
 
             {/* Alert Messages */}
             {forgotError && (
               <div className="mb-4 p-3 rounded-xl bg-[#ffdad6]/70 text-[#93000a] text-xs font-medium flex items-center gap-2">
-                <span className="material-symbols-outlined text-[16px]">error</span>
+                <AlertCircle className="w-4 h-4 shrink-0" />
                 <span>{forgotError}</span>
               </div>
             )}
 
             {forgotSuccess && (
               <div className="mb-4 p-3 rounded-xl bg-[#dee0ff] text-[#24389c] text-xs font-medium flex items-center gap-2">
-                <span className="material-symbols-outlined text-[16px]">check_circle</span>
+                <CheckCircle2 className="w-4 h-4 shrink-0" />
                 <span>{forgotSuccess}</span>
               </div>
             )}
