@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { DaySchedule, TimeBlock } from '../types';
 
 interface HorariosViewProps {
@@ -8,103 +8,148 @@ interface HorariosViewProps {
   onChangeTimeZone: (tz: string) => void;
 }
 
+interface FormattedDayRow {
+  dayCode: number;
+  dayName: string;
+  active: boolean;
+  openTime: string;
+  closeTime: string;
+  hasBreak: boolean;
+  breakStart: string;
+  breakEnd: string;
+}
+
 export const HorariosView: React.FC<HorariosViewProps> = ({
   schedule: initialSchedule,
   onSaveSchedule,
   timeZone,
   onChangeTimeZone,
 }) => {
-  const [schedule, setSchedule] = useState<DaySchedule[]>(initialSchedule);
+  const [dayRows, setDayRows] = useState<FormattedDayRow[]>([]);
   const [isSaved, setIsSaved] = useState(false);
   const [bufferTime, setBufferTime] = useState('15 min');
   const [advanceDays, setAdvanceDays] = useState('30 días');
 
-  React.useEffect(() => {
-    if (initialSchedule && initialSchedule.length > 0) {
-      setSchedule(initialSchedule);
-    }
+  // Convert DaySchedule[] into clean structured FormattedDayRow[]
+  useEffect(() => {
+    if (!initialSchedule || initialSchedule.length === 0) return;
+
+    const formatted: FormattedDayRow[] = initialSchedule.map((d) => {
+      const workingBlocks = (d.blocks || []).filter((b) => !b.isBreak);
+      const breakBlocks = (d.blocks || []).filter((b) => b.isBreak);
+
+      // Find earliest start and latest end
+      let openTime = '09:00';
+      let closeTime = '19:00';
+
+      if (workingBlocks.length > 0) {
+        openTime = workingBlocks[0].start || '09:00';
+        closeTime = workingBlocks[workingBlocks.length - 1].end || '19:00';
+      }
+
+      const hasBreak = breakBlocks.length > 0;
+      const breakStart = hasBreak ? breakBlocks[0].start : '13:00';
+      const breakEnd = hasBreak ? breakBlocks[0].end : '14:00';
+
+      return {
+        dayCode: d.dayCode,
+        dayName: d.dayName,
+        active: Boolean(d.active),
+        openTime,
+        closeTime,
+        hasBreak,
+        breakStart,
+        breakEnd,
+      };
+    });
+
+    setDayRows(formatted);
   }, [initialSchedule]);
 
-  const handleToggleDay = (dayIndex: number) => {
-    setSchedule((prev) => {
+  const handleToggleActive = (index: number) => {
+    setDayRows((prev) => {
       const next = [...prev];
-      next[dayIndex] = {
-        ...next[dayIndex],
-        active: !next[dayIndex].active,
-      };
+      next[index] = { ...next[index], active: !next[index].active };
       return next;
     });
   };
 
-  const handleTimeChange = (
-    dayIndex: number,
-    blockId: string,
-    field: 'start' | 'end',
-    val: string
+  const handleChangeTime = (
+    index: number,
+    field: 'openTime' | 'closeTime' | 'breakStart' | 'breakEnd',
+    value: string
   ) => {
-    setSchedule((prev) => {
+    setDayRows((prev) => {
       const next = [...prev];
-      const blocks = next[dayIndex].blocks.map((b) =>
-        b.id === blockId ? { ...b, [field]: val } : b
-      );
-      next[dayIndex] = { ...next[dayIndex], blocks };
+      next[index] = { ...next[index], [field]: value };
       return next;
     });
   };
 
-  const handleAddBreak = (dayIndex: number) => {
-    setSchedule((prev) => {
+  const handleToggleBreak = (index: number) => {
+    setDayRows((prev) => {
       const next = [...prev];
-      const newBlock: TimeBlock = {
-        id: `break-${Date.now()}`,
-        start: '13:00',
-        end: '14:00',
-        isBreak: true,
-        label: 'Almuerzo',
-      };
-      next[dayIndex] = {
-        ...next[dayIndex],
-        blocks: [...next[dayIndex].blocks, newBlock],
-      };
-      return next;
-    });
-  };
-
-  const handleRemoveBlock = (dayIndex: number, blockId: string) => {
-    setSchedule((prev) => {
-      const next = [...prev];
-      next[dayIndex] = {
-        ...next[dayIndex],
-        blocks: next[dayIndex].blocks.filter((b) => b.id !== blockId),
-      };
+      next[index] = { ...next[index], hasBreak: !next[index].hasBreak };
       return next;
     });
   };
 
   const handleCopyMondayToAll = () => {
-    const monday = schedule[0];
-    if (!monday) return;
-    setSchedule((prev) =>
+    if (dayRows.length === 0) return;
+    const monday = dayRows[0];
+    setDayRows((prev) =>
       prev.map((d, i) => {
         if (i === 0) return d;
-        // Don't overwrite Sunday if it's inactive unless desired
         return {
           ...d,
           active: i < 6 ? monday.active : d.active,
-          blocks: JSON.parse(JSON.stringify(monday.blocks)),
+          openTime: monday.openTime,
+          closeTime: monday.closeTime,
+          hasBreak: monday.hasBreak,
+          breakStart: monday.breakStart,
+          breakEnd: monday.breakEnd,
         };
       })
     );
   };
 
   const handleSave = () => {
-    onSaveSchedule(schedule);
+    const updatedSchedules: DaySchedule[] = dayRows.map((row) => {
+      const blocks: TimeBlock[] = [];
+
+      if (row.active) {
+        // Main working block
+        blocks.push({
+          id: `work-${row.dayCode}`,
+          start: row.openTime,
+          end: row.closeTime,
+          isBreak: false,
+          label: 'Jornada',
+        });
+
+        // Break block if enabled
+        if (row.hasBreak) {
+          blocks.push({
+            id: `break-${row.dayCode}`,
+            start: row.breakStart,
+            end: row.breakEnd,
+            isBreak: true,
+            label: 'Almuerzo',
+          });
+        }
+      }
+
+      return {
+        dayCode: row.dayCode,
+        dayName: row.dayName,
+        active: row.active,
+        blocks,
+      };
+    });
+
+    onSaveSchedule(updatedSchedules);
     setIsSaved(true);
     setTimeout(() => setIsSaved(false), 3000);
-  };
-
-  const handleReset = () => {
-    setSchedule(initialSchedule);
   };
 
   return (
@@ -116,175 +161,177 @@ export const HorariosView: React.FC<HorariosViewProps> = ({
             Horarios y Disponibilidad
           </h2>
           <p className="text-[#454652] text-sm md:text-base mt-1">
-            Configura tus días laborables, horario de atención y pausas de descanso.
+            Configura el horario de apertura, cierre y descansos de tu negocio.
           </p>
         </div>
 
         <div className="flex items-center gap-2.5">
           <button
-            onClick={handleReset}
-            className="h-10 px-4 bg-white hover:bg-[#f3f4f5] text-[#454652] border border-[#e1e3e4] rounded-xl text-xs font-bold transition-all cursor-pointer shadow-2xs"
-          >
-            Descartar
-          </button>
-          <button
             onClick={handleSave}
-            className="h-10 px-5 bg-[#24389c] hover:bg-[#1d2d7c] text-white rounded-xl text-xs font-bold shadow-xs transition-all flex items-center gap-1.5 cursor-pointer active:scale-[0.98]"
+            className="h-10 px-6 bg-[#24389c] hover:bg-[#1d2d7c] text-white rounded-xl text-xs font-bold shadow-xs transition-all flex items-center gap-2 cursor-pointer active:scale-[0.98]"
           >
-            <span className="material-symbols-outlined text-[17px]">
+            <span className="material-symbols-outlined text-[18px]">
               {isSaved ? 'check' : 'save'}
             </span>
-            <span>{isSaved ? '¡Guardado!' : 'Guardar cambios'}</span>
+            <span>{isSaved ? '¡Cambios Guardados!' : 'Guardar cambios'}</span>
           </button>
         </div>
       </div>
 
-      {/* Days Schedule Card */}
+      {/* Main Schedule Matrix Table */}
       <div className="bg-white border border-[#e1e3e4] rounded-2xl overflow-hidden shadow-2xs">
-        {/* Quick action bar */}
-        <div className="px-5 py-3 bg-[#f8f9fa] border-b border-[#e1e3e4] flex justify-between items-center text-xs">
-          <span className="font-bold text-[#454652] uppercase tracking-wider text-[11px]">
-            Jornada semanal
+        {/* Table Toolbar */}
+        <div className="px-6 py-3.5 bg-[#f8f9fa] border-b border-[#e1e3e4] flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <span className="font-bold text-xs text-[#454652] uppercase tracking-wider">
+            Horario semanal por días
           </span>
           <button
             onClick={handleCopyMondayToAll}
-            className="text-[#24389c] hover:underline font-bold flex items-center gap-1 cursor-pointer"
-            title="Copiar horario del lunes a los demás días"
+            className="text-xs font-bold text-[#24389c] hover:underline flex items-center gap-1.5 cursor-pointer self-start sm:self-auto"
+            title="Copiar horario del lunes a los demás días laborables"
           >
-            <span className="material-symbols-outlined text-[15px]">content_copy</span>
-            <span>Aplicar horario del Lunes a todos los días</span>
+            <span className="material-symbols-outlined text-[16px]">content_copy</span>
+            <span>Copiar horario del Lunes a todos los días</span>
           </button>
         </div>
 
-        {/* Days List */}
-        <div className="divide-y divide-[#e1e3e4]">
-          {schedule.map((day, idx) => {
-            const workingBlocks = day.blocks.filter((b) => !b.isBreak);
-            const breakBlocks = day.blocks.filter((b) => b.isBreak);
+        {/* Schedule Table Header */}
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="border-b border-[#e1e3e4] bg-[#f8f9fa]/50 text-xs font-bold text-[#757684] uppercase tracking-wider">
+                <th className="py-3 px-6 w-48">Día</th>
+                <th className="py-3 px-6">Horario de Atención</th>
+                <th className="py-3 px-6">Pausa / Almuerzo (Opcional)</th>
+                <th className="py-3 px-6 text-right">Estado</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[#e1e3e4] text-sm">
+              {dayRows.map((row, index) => {
+                const isAlt = index % 2 === 1;
 
-            return (
-              <div
-                key={day.dayName}
-                className={`p-4 sm:p-5 flex flex-col lg:flex-row lg:items-center justify-between gap-4 transition-colors ${
-                  !day.active ? 'bg-[#fafafa]' : idx % 2 === 1 ? 'bg-[#fcfdfe]' : 'bg-white'
-                }`}
-              >
-                {/* Left: Toggle + Day Name */}
-                <div className="flex items-center gap-3.5 min-w-[150px] shrink-0">
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={day.active}
-                      onChange={() => handleToggleDay(idx)}
-                      className="sr-only peer"
-                    />
-                    <div className="w-10 h-5 bg-[#c5c5d4] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-[#c5c5d4] after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#24389c]"></div>
-                  </label>
-
-                  <div>
-                    <span
-                      className={`font-bold text-sm uppercase tracking-wide block ${
-                        day.active ? 'text-[#191c1d]' : 'text-[#a0a1ab]'
-                      }`}
-                    >
-                      {day.dayName}
-                    </span>
-                    {!day.active && (
-                      <span className="inline-block text-[10px] font-bold text-[#ba1a1a] bg-[#ffdad6]/60 px-2 py-0.5 rounded-full mt-0.5">
-                        Cerrado
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                {/* Right: Working Hours & Breaks in a clean, unified row */}
-                {day.active ? (
-                  <div className="flex-1 flex flex-wrap items-center gap-3">
-                    {/* Main Working Hours Block */}
-                    {workingBlocks.map((block) => (
-                      <div
-                        key={block.id}
-                        className="inline-flex items-center gap-2 p-1.5 bg-[#f8f9fa] border border-[#e1e3e4] rounded-xl text-xs shadow-2xs"
-                      >
-                        <span className="material-symbols-outlined text-[15px] text-[#757684] ml-1">
-                          schedule
-                        </span>
-                        <input
-                          type="time"
-                          value={block.start}
-                          onChange={(e) =>
-                            handleTimeChange(idx, block.id, 'start', e.target.value)
-                          }
-                          className="w-20 px-2 py-1 bg-white border border-[#e1e3e4] rounded-lg font-mono font-bold text-[#191c1d] text-xs outline-none text-center focus:border-[#24389c]"
-                        />
-                        <span className="text-[#757684] font-medium text-xs">a</span>
-                        <input
-                          type="time"
-                          value={block.end}
-                          onChange={(e) =>
-                            handleTimeChange(idx, block.id, 'end', e.target.value)
-                          }
-                          className="w-20 px-2 py-1 bg-white border border-[#e1e3e4] rounded-lg font-mono font-bold text-[#191c1d] text-xs outline-none text-center focus:border-[#24389c]"
-                        />
-                      </div>
-                    ))}
-
-                    {/* Break Blocks */}
-                    {breakBlocks.map((block) => (
-                      <div
-                        key={block.id}
-                        className="inline-flex items-center gap-2 p-1.5 bg-[#ffdcc6]/40 border border-[#ffb784] rounded-xl text-xs shadow-2xs animate-in fade-in duration-150"
-                      >
-                        <span className="material-symbols-outlined text-[15px] text-[#8f4700] ml-1">
-                          coffee
-                        </span>
-                        <span className="font-bold text-[#8f4700] text-[11px]">Descanso:</span>
-                        <input
-                          type="time"
-                          value={block.start}
-                          onChange={(e) =>
-                            handleTimeChange(idx, block.id, 'start', e.target.value)
-                          }
-                          className="w-20 px-2 py-1 bg-white border border-[#ffb784] rounded-lg font-mono font-bold text-[#8f4700] text-xs outline-none text-center"
-                        />
-                        <span className="text-[#8f4700]">-</span>
-                        <input
-                          type="time"
-                          value={block.end}
-                          onChange={(e) =>
-                            handleTimeChange(idx, block.id, 'end', e.target.value)
-                          }
-                          className="w-20 px-2 py-1 bg-white border border-[#ffb784] rounded-lg font-mono font-bold text-[#8f4700] text-xs outline-none text-center"
-                        />
-                        <button
-                          onClick={() => handleRemoveBlock(idx, block.id)}
-                          className="p-1 text-[#8f4700] hover:text-[#ba1a1a] hover:bg-[#ffdad6]/60 rounded-lg transition-colors cursor-pointer mr-0.5"
-                          title="Eliminar descanso"
+                return (
+                  <tr
+                    key={row.dayCode}
+                    className={`transition-colors ${
+                      !row.active
+                        ? 'bg-[#fafafa]'
+                        : isAlt
+                        ? 'bg-[#eff1f4]/40 hover:bg-[#dee0ff]/15'
+                        : 'bg-white hover:bg-[#dee0ff]/15'
+                    }`}
+                  >
+                    {/* Col 1: Toggle & Day Name */}
+                    <td className="py-4 px-6 whitespace-nowrap">
+                      <div className="flex items-center gap-3">
+                        <label className="relative inline-flex items-center cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={row.active}
+                            onChange={() => handleToggleActive(index)}
+                            className="sr-only peer"
+                          />
+                          <div className="w-10 h-5 bg-[#c5c5d4] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-[#c5c5d4] after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#24389c]"></div>
+                        </label>
+                        <span
+                          className={`font-bold text-sm uppercase tracking-wide ${
+                            row.active ? 'text-[#191c1d]' : 'text-[#a0a1ab]'
+                          }`}
                         >
-                          <span className="material-symbols-outlined text-[15px] block">close</span>
-                        </button>
+                          {row.dayName}
+                        </span>
                       </div>
-                    ))}
+                    </td>
 
-                    {/* Add Break Button if none exists */}
-                    {breakBlocks.length === 0 && (
-                      <button
-                        onClick={() => handleAddBreak(idx)}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs text-[#24389c] hover:bg-[#dee0ff]/40 rounded-xl font-bold transition-all border border-dashed border-[#bac3ff] cursor-pointer"
-                      >
-                        <span className="material-symbols-outlined text-[15px]">coffee</span>
-                        <span>+ Añadir descanso</span>
-                      </button>
-                    )}
-                  </div>
-                ) : (
-                  <div className="text-xs text-[#757684] italic py-1.5">
-                    Este día no se reciben reservas.
-                  </div>
-                )}
-              </div>
-            );
-          })}
+                    {/* Col 2: Opening & Closing Hours */}
+                    <td className="py-4 px-6 whitespace-nowrap">
+                      {row.active ? (
+                        <div className="inline-flex items-center gap-2">
+                          <input
+                            type="time"
+                            value={row.openTime}
+                            onChange={(e) =>
+                              handleChangeTime(index, 'openTime', e.target.value)
+                            }
+                            className="w-24 px-2.5 py-1.5 bg-white border border-[#e1e3e4] rounded-xl font-mono font-bold text-xs text-[#191c1d] focus:border-[#24389c] focus:ring-2 focus:ring-[#24389c]/15 outline-none text-center shadow-2xs transition-all"
+                          />
+                          <span className="text-xs font-semibold text-[#757684]">a</span>
+                          <input
+                            type="time"
+                            value={row.closeTime}
+                            onChange={(e) =>
+                              handleChangeTime(index, 'closeTime', e.target.value)
+                            }
+                            className="w-24 px-2.5 py-1.5 bg-white border border-[#e1e3e4] rounded-xl font-mono font-bold text-xs text-[#191c1d] focus:border-[#24389c] focus:ring-2 focus:ring-[#24389c]/15 outline-none text-center shadow-2xs transition-all"
+                          />
+                        </div>
+                      ) : (
+                        <span className="text-xs text-[#a0a1ab] italic">— No disponible —</span>
+                      )}
+                    </td>
+
+                    {/* Col 3: Break Hours (Optional) */}
+                    <td className="py-4 px-6 whitespace-nowrap">
+                      {row.active ? (
+                        <div className="flex items-center gap-3">
+                          <label className="flex items-center gap-2 cursor-pointer select-none">
+                            <input
+                              type="checkbox"
+                              checked={row.hasBreak}
+                              onChange={() => handleToggleBreak(index)}
+                              className="rounded border-[#e1e3e4] text-[#24389c] focus:ring-[#24389c] cursor-pointer"
+                            />
+                            <span className="text-xs font-semibold text-[#454652]">
+                              Pausa de almuerzo
+                            </span>
+                          </label>
+
+                          {row.hasBreak && (
+                            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-[#ffdcc6]/40 border border-[#ffb784] rounded-xl text-xs animate-in fade-in duration-150">
+                              <input
+                                type="time"
+                                value={row.breakStart}
+                                onChange={(e) =>
+                                  handleChangeTime(index, 'breakStart', e.target.value)
+                                }
+                                className="w-20 px-1.5 py-0.5 bg-white border border-[#ffb784] rounded-lg font-mono font-bold text-xs text-[#8f4700] outline-none text-center"
+                              />
+                              <span className="text-xs font-bold text-[#8f4700]">-</span>
+                              <input
+                                type="time"
+                                value={row.breakEnd}
+                                onChange={(e) =>
+                                  handleChangeTime(index, 'breakEnd', e.target.value)
+                                }
+                                className="w-20 px-1.5 py-0.5 bg-white border border-[#ffb784] rounded-lg font-mono font-bold text-xs text-[#8f4700] outline-none text-center"
+                              />
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="text-xs text-[#a0a1ab] italic">—</span>
+                      )}
+                    </td>
+
+                    {/* Col 4: Status Badge */}
+                    <td className="py-4 px-6 text-right whitespace-nowrap">
+                      {row.active ? (
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-[#e1f5ec] text-[#047857]">
+                          <span className="w-1.5 h-1.5 rounded-full bg-[#10b981]"></span>
+                          <span>Abierto</span>
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-[#ffdad6]/60 text-[#ba1a1a]">
+                          <span className="w-1.5 h-1.5 rounded-full bg-[#ba1a1a]"></span>
+                          <span>Cerrado</span>
+                        </span>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
       </div>
 
