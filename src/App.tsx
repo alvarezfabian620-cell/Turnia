@@ -524,7 +524,6 @@ export default function App() {
           }}
           isConnectedWS={isConnectedWS}
           currentUser={authUser}
-          onSwitchRole={handleSwitchRole}
         />
 
         {/* Dynamic Views Rendering based on Role & Navigation */}
@@ -787,6 +786,18 @@ export default function App() {
         isOpen={isAdminProfileOpen}
         onClose={() => setIsAdminProfileOpen(false)}
         user={authUser}
+        config={businessConfig}
+        onNavigateToSettings={() => {
+          setIsAdminProfileOpen(false);
+          setCurrentView('configuracion');
+        }}
+        onLogout={() => {
+          setIsAdminProfileOpen(false);
+          api.auth.logout();
+          setIsAuthenticated(false);
+          setAuthUser(null);
+          showToast('Has cerrado sesión correctamente.', 'info');
+        }}
       />
     </div>
   );

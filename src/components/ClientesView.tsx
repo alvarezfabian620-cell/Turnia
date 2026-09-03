@@ -215,7 +215,7 @@ export const ClientesView: React.FC<ClientesViewProps> = ({
 
       {/* Add / Edit Client Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4 backdrop-blur-xs">
+        <div className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4 backdrop-blur-sm">
           <div className="bg-white rounded-xl max-w-md w-full p-6 shadow-xl animate-in fade-in duration-150">
             <div className="flex justify-between items-center mb-4">
               <h3 className="font-bold text-lg text-[#191c1d]">

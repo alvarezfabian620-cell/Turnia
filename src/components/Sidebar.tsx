@@ -74,12 +74,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
     if (onCloseMobile) onCloseMobile();
   };
 
-  const getRoleLabel = () => {
-    if (role === 'admin') return 'Administrador';
-    if (role === 'empleado') return 'Profesional / Staff';
-    return 'Cliente';
-  };
-
   return (
     <>
       {/* Mobile backdrop */}
@@ -91,7 +85,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       )}
 
       <aside
-        className={`fixed left-0 top-0 h-full w-[260px] bg-white border-r border-[#e1e3e4] flex flex-col py-6 px-4 z-50 transition-transform duration-200 ease-in-out ${
+        className={`fixed left-0 top-0 h-full w-[260px] bg-white border-r border-[#e1e3e4] flex flex-col py-6 px-4 z-20 transition-transform duration-200 ease-in-out ${
           isMobileOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
         }`}
       >
@@ -116,25 +110,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <span className="material-symbols-outlined text-[20px]">close</span>
             </button>
           )}
-        </div>
-
-        {/* Role Badge Indicator */}
-        <div className="mb-4 px-2">
-          <div className="p-2.5 bg-[#f8f9fa] border border-[#e1e3e4] rounded-xl flex items-center gap-2">
-            <span
-              className={`w-2 h-2 rounded-full ${
-                role === 'admin' ? 'bg-[#24389c]' : role === 'empleado' ? 'bg-[#047857]' : 'bg-[#d97706]'
-              }`}
-            />
-            <div className="flex flex-col">
-              <span className="text-[10px] uppercase tracking-wider font-bold text-[#757684]">
-                Rol Activo
-              </span>
-              <span className="text-xs font-bold text-[#191c1d] capitalize">
-                {getRoleLabel()}
-              </span>
-            </div>
-          </div>
         </div>
 
         {/* Navigation Items */}

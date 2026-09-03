@@ -219,7 +219,7 @@ export const ProfesionalesView: React.FC<ProfesionalesViewProps> = ({
 
       {/* Modal: Ver Citas del Profesional */}
       {selectedProfForAppointments && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-white rounded-2xl max-w-2xl w-full p-6 shadow-2xl border border-[#e1e3e4] max-h-[90vh] flex flex-col">
             {/* Modal Header */}
             <div className="flex items-center justify-between border-b border-[#e1e3e4] pb-4 mb-4">
