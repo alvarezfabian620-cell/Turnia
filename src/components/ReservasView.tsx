@@ -345,28 +345,28 @@ export const ReservasView: React.FC<ReservasViewProps> = ({
                       className="py-4 px-4 text-right whitespace-nowrap"
                       onClick={(e) => e.stopPropagation()}
                     >
-                      <div className="inline-flex items-center gap-1.5 p-1 bg-[#f8f9fa] border border-[#e1e3e4] rounded-xl shadow-2xs">
+                      <div className="flex items-center justify-end gap-1">
                         <button
                           onClick={() => onSelectReservation(res)}
-                          className="w-8 h-8 rounded-lg bg-white border border-[#e1e3e4] hover:border-[#24389c] text-[#24389c] hover:bg-[#dee0ff]/40 transition-all flex items-center justify-center shadow-2xs cursor-pointer"
+                          className="p-1.5 text-[#757684] hover:text-[#24389c] hover:bg-[#dee0ff]/50 rounded-lg transition-colors cursor-pointer"
                           title="Ver detalles completos"
                         >
-                          <span className="material-symbols-outlined text-[17px]">visibility</span>
+                          <span className="material-symbols-outlined text-[19px] block">visibility</span>
                         </button>
                         <button
                           onClick={() => onEditReservation(res)}
-                          className="w-8 h-8 rounded-lg bg-white border border-[#e1e3e4] hover:border-[#24389c] text-[#454652] hover:text-[#24389c] hover:bg-[#f3f4f5] transition-all flex items-center justify-center shadow-2xs cursor-pointer"
+                          className="p-1.5 text-[#757684] hover:text-[#191c1d] hover:bg-[#f3f4f5] rounded-lg transition-colors cursor-pointer"
                           title="Editar cita"
                         >
-                          <span className="material-symbols-outlined text-[17px]">edit</span>
+                          <span className="material-symbols-outlined text-[19px] block">edit</span>
                         </button>
                         {res.status !== 'cancelada' ? (
                           <button
                             onClick={() => onCancelReservation(res)}
-                            className="w-8 h-8 rounded-lg bg-white border border-[#e1e3e4] hover:border-[#ba1a1a] text-[#ba1a1a] hover:bg-[#ffdad6]/50 transition-all flex items-center justify-center shadow-2xs cursor-pointer"
+                            className="p-1.5 text-[#757684] hover:text-[#ba1a1a] hover:bg-[#ffdad6]/40 rounded-lg transition-colors cursor-pointer"
                             title="Cancelar reserva"
                           >
-                            <span className="material-symbols-outlined text-[17px]">cancel</span>
+                            <span className="material-symbols-outlined text-[19px] block">cancel</span>
                           </button>
                         ) : null}
                       </div>

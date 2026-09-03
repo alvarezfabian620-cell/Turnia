@@ -4,6 +4,21 @@ import { broadcastEvent } from '../websocket.js';
 
 export const activitiesRouter = Router();
 
+function computeDynamicTimeAgo(timestampStr: string): string {
+  if (!timestampStr) return 'Reciente';
+  const timestamp = new Date(timestampStr).getTime();
+  if (isNaN(timestamp)) return 'Reciente';
+
+  const diffMs = Date.now() - timestamp;
+  const diffSec = Math.floor(diffMs / 1000);
+
+  if (diffSec < 45) return 'Justo ahora';
+  if (diffSec < 3600) return `Hace ${Math.max(1, Math.floor(diffSec / 60))} min`;
+  if (diffSec < 86400) return `Hace ${Math.floor(diffSec / 3600)} h`;
+  if (diffSec < 172800) return 'Ayer';
+  return new Date(timestampStr).toLocaleDateString('es-CO', { day: '2-digit', month: 'short' });
+}
+
 // GET /api/activities
 activitiesRouter.get('/', async (req: Request, res: Response) => {
   try {
@@ -13,7 +28,7 @@ activitiesRouter.get('/', async (req: Request, res: Response) => {
       id: r.id,
       title: r.title,
       clientName: r.client_name || undefined,
-      timeAgo: r.time_ago || 'Reciente',
+      timeAgo: computeDynamicTimeAgo(r.timestamp),
       type: r.type,
       amount: r.amount ? Number(r.amount) : undefined,
       timestamp: r.timestamp,

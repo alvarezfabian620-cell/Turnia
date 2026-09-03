@@ -70,19 +70,6 @@ export const Header: React.FC<HeaderProps> = ({
 
       {/* Right side: Notifications, Help, Profile */}
       <div className="flex items-center gap-2 md:gap-3 ml-auto">
-        {/* Real-time WebSocket connection indicator */}
-        <div
-          className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-[#f3f4f5] text-[#454652] border border-[#e1e3e4]"
-          title={isConnectedWS ? 'Conectado a Turnia en tiempo real (WebSockets activos)' : 'Conectando WebSockets...'}
-        >
-          <span
-            className={`w-2 h-2 rounded-full ${
-              isConnectedWS ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'
-            }`}
-          />
-          <span className="hidden lg:inline">{isConnectedWS ? 'En vivo' : 'Conectando'}</span>
-        </div>
-
         {/* Notifications Popover */}
         <div className="relative" ref={notifRef}>
           <button
