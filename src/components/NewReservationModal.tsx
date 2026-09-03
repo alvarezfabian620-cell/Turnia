@@ -23,7 +23,7 @@ export const NewReservationModal: React.FC<NewReservationModalProps> = ({
   const [clientPhone, setClientPhone] = useState('');
   const [serviceId, setServiceId] = useState('');
   const [professionalId, setProfessionalId] = useState('');
-  const [date, setDate] = useState('2023-10-24');
+  const [date, setDate] = useState(() => new Date().toISOString().split('T')[0]);
   const [time, setTime] = useState('09:00');
   const [status, setStatus] = useState<Reservation['status']>('confirmada');
   const [notes, setNotes] = useState('');
@@ -56,14 +56,14 @@ export const NewReservationModal: React.FC<NewReservationModalProps> = ({
     // Calculate end time
     const duration = selectedService ? selectedService.durationMinutes : 45;
     const [hours, mins] = time.split(':').map(Number);
-    const totalMinutes = hours * 60 + mins + duration;
+    const totalMinutes = (isNaN(hours) ? 9 : hours) * 60 + (isNaN(mins) ? 0 : mins) + duration;
     const endHour = String(Math.floor(totalMinutes / 60) % 24).padStart(2, '0');
     const endMin = String(totalMinutes % 60).padStart(2, '0');
     const endTime = `${endHour}:${endMin}`;
 
     onSave({
-      clientName,
-      clientPhone: clientPhone || '+34 600 000 000',
+      clientName: clientName.trim(),
+      clientPhone: clientPhone.trim() || '+57 300 000 0000',
       serviceId: selectedService ? selectedService.id : 'serv-1',
       serviceName: selectedService ? selectedService.name : 'Servicio General',
       professionalId: selectedProfessional ? selectedProfessional.id : 'prof-1',
@@ -72,12 +72,11 @@ export const NewReservationModal: React.FC<NewReservationModalProps> = ({
       time,
       endTime,
       durationMinutes: duration,
-      price: selectedService ? selectedService.price : 25,
+      price: selectedService ? selectedService.price : 0,
       status,
-      notes,
+      notes: notes.trim(),
     });
 
-    // Trigger celebration confetti
     try {
       confetti({
         particleCount: 40,
@@ -86,7 +85,7 @@ export const NewReservationModal: React.FC<NewReservationModalProps> = ({
         colors: ['#24389c', '#3f51b5', '#ffdcc6'],
       });
     } catch {
-      // Ignore if confetti fails
+      // Ignore if confetti is unavailable
     }
 
     onClose();
@@ -94,85 +93,85 @@ export const NewReservationModal: React.FC<NewReservationModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4 backdrop-blur-xs">
-      <div className="bg-white rounded-xl max-w-lg w-full p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150 max-h-[90vh] overflow-y-auto">
-        <div className="flex justify-between items-center pb-3 border-b border-[#e1e3e4] mb-4">
-          <div className="flex items-center gap-2">
-            <div className="p-2 bg-[#dee0ff] text-[#24389c] rounded-lg">
-              <span className="material-symbols-outlined text-[20px]">calendar_add_on</span>
+      <div className="bg-white rounded-2xl max-w-lg w-full p-6 sm:p-7 shadow-2xl border border-[#e1e3e4] animate-in fade-in zoom-in-95 duration-150 max-h-[92vh] overflow-y-auto">
+        {/* Header */}
+        <div className="flex justify-between items-center pb-4 border-b border-[#e1e3e4] mb-5">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-[#dee0ff] text-[#24389c] rounded-xl flex items-center justify-center shrink-0">
+              <span className="material-symbols-outlined text-[22px]">calendar_add_on</span>
             </div>
             <div>
-              <h3 className="font-bold text-lg text-[#191c1d]">Nueva Reserva</h3>
-              <p className="text-xs text-[#757684]">
-                Ingresa los datos para registrar la cita
-              </p>
+              <h3 className="font-bold text-lg text-[#191c1d] leading-snug">Nueva Reserva</h3>
+              <p className="text-xs text-[#757684]">Ingresa los datos para agendar la cita</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1 text-[#757684] hover:text-[#191c1d] hover:bg-[#f3f4f5] rounded-lg transition-colors"
+            className="p-1.5 text-[#757684] hover:text-[#191c1d] hover:bg-[#f3f4f5] rounded-lg transition-colors cursor-pointer"
+            title="Cerrar ventana"
           >
             <span className="material-symbols-outlined text-[20px]">close</span>
           </button>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Client Details */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {/* Section 1: Client Info */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
             <div>
-              <label className="block text-xs font-semibold uppercase text-[#757684] mb-1 tracking-wider">
-                Nombre del Cliente *
+              <label className="block text-xs font-semibold text-[#454652] mb-1.5">
+                Nombre del Cliente <span className="text-[#ba1a1a]">*</span>
               </label>
               <input
                 type="text"
                 value={clientName}
                 onChange={(e) => setClientName(e.target.value)}
                 placeholder="Ej. Valentina Morales"
-                className="w-full border border-[#e1e3e4] rounded-lg px-3 py-2 text-sm text-[#191c1d] focus:border-[#24389c] outline-none"
+                className="w-full border border-[#e1e3e4] rounded-xl px-3.5 py-2.5 text-sm text-[#191c1d] focus:border-[#24389c] focus:ring-2 focus:ring-[#24389c]/15 outline-none transition-all placeholder:text-[#a0a1ab]"
                 required
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold uppercase text-[#757684] mb-1 tracking-wider">
+              <label className="block text-xs font-semibold text-[#454652] mb-1.5">
                 Teléfono / WhatsApp
               </label>
               <input
                 type="text"
                 value={clientPhone}
                 onChange={(e) => setClientPhone(e.target.value)}
-                placeholder="+34 600 123 456"
-                className="w-full border border-[#e1e3e4] rounded-lg px-3 py-2 text-sm text-[#191c1d] focus:border-[#24389c] outline-none"
+                placeholder="Ej. +57 300 123 4567"
+                className="w-full border border-[#e1e3e4] rounded-xl px-3.5 py-2.5 text-sm text-[#191c1d] focus:border-[#24389c] focus:ring-2 focus:ring-[#24389c]/15 outline-none transition-all placeholder:text-[#a0a1ab]"
               />
             </div>
           </div>
 
-          {/* Service & Professional */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {/* Section 2: Service & Professional */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
             <div>
-              <label className="block text-xs font-semibold uppercase text-[#757684] mb-1 tracking-wider">
+              <label className="block text-xs font-semibold text-[#454652] mb-1.5">
                 Servicio
               </label>
               <select
                 value={serviceId}
                 onChange={(e) => setServiceId(e.target.value)}
-                className="w-full border border-[#e1e3e4] rounded-lg px-3 py-2 text-sm text-[#191c1d] bg-white focus:border-[#24389c] outline-none"
+                className="w-full border border-[#e1e3e4] rounded-xl px-3.5 py-2.5 text-sm text-[#191c1d] bg-white focus:border-[#24389c] focus:ring-2 focus:ring-[#24389c]/15 outline-none font-medium cursor-pointer transition-all"
               >
                 {services.map((s) => (
                   <option key={s.id} value={s.id}>
-                    {s.name} (${Number(s.price || 0).toLocaleString('es-CO')} - {s.durationMinutes}m)
+                    {s.name} (${Number(s.price || 0).toLocaleString('es-CO')})
                   </option>
                 ))}
               </select>
             </div>
 
             <div>
-              <label className="block text-xs font-semibold uppercase text-[#757684] mb-1 tracking-wider">
+              <label className="block text-xs font-semibold text-[#454652] mb-1.5">
                 Profesional
               </label>
               <select
                 value={professionalId}
                 onChange={(e) => setProfessionalId(e.target.value)}
-                className="w-full border border-[#e1e3e4] rounded-lg px-3 py-2 text-sm text-[#191c1d] bg-white focus:border-[#24389c] outline-none"
+                className="w-full border border-[#e1e3e4] rounded-xl px-3.5 py-2.5 text-sm text-[#191c1d] bg-white focus:border-[#24389c] focus:ring-2 focus:ring-[#24389c]/15 outline-none font-medium cursor-pointer transition-all"
               >
                 {professionals.map((p) => (
                   <option key={p.id} value={p.id}>
@@ -183,91 +182,94 @@ export const NewReservationModal: React.FC<NewReservationModalProps> = ({
             </div>
           </div>
 
-          {/* Date, Time & Status */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          {/* Section 3: Date & Time in 2 balanced columns */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
             <div>
-              <label className="block text-xs font-semibold uppercase text-[#757684] mb-1 tracking-wider">
-                Fecha
+              <label className="block text-xs font-semibold text-[#454652] mb-1.5">
+                Fecha de la cita
               </label>
               <input
                 type="date"
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
-                className="w-full border border-[#e1e3e4] rounded-lg px-3 py-2 text-sm text-[#191c1d] bg-white focus:border-[#24389c] outline-none"
+                className="w-full border border-[#e1e3e4] rounded-xl px-3.5 py-2.5 text-sm text-[#191c1d] bg-white focus:border-[#24389c] focus:ring-2 focus:ring-[#24389c]/15 outline-none font-medium transition-all"
                 required
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold uppercase text-[#757684] mb-1 tracking-wider">
-                Hora Inicio
+              <label className="block text-xs font-semibold text-[#454652] mb-1.5">
+                Hora de inicio
               </label>
               <input
                 type="time"
                 value={time}
                 onChange={(e) => setTime(e.target.value)}
-                className="w-full border border-[#e1e3e4] rounded-lg px-3 py-2 text-sm font-mono text-[#191c1d] bg-white focus:border-[#24389c] outline-none"
+                className="w-full border border-[#e1e3e4] rounded-xl px-3.5 py-2.5 text-sm font-mono text-[#191c1d] bg-white focus:border-[#24389c] focus:ring-2 focus:ring-[#24389c]/15 outline-none font-bold transition-all"
                 required
               />
             </div>
-
-            <div>
-              <label className="block text-xs font-semibold uppercase text-[#757684] mb-1 tracking-wider">
-                Estado
-              </label>
-              <select
-                value={status}
-                onChange={(e) => setStatus(e.target.value as Reservation['status'])}
-                className="w-full border border-[#e1e3e4] rounded-lg px-3 py-2 text-sm text-[#191c1d] bg-white focus:border-[#24389c] outline-none"
-              >
-                <option value="confirmada">Confirmada</option>
-                <option value="pendiente">Pendiente</option>
-                <option value="en_curso">En curso</option>
-              </select>
-            </div>
           </div>
 
-          {/* Notes */}
+          {/* Section 4: Estado */}
           <div>
-            <label className="block text-xs font-semibold uppercase text-[#757684] mb-1 tracking-wider">
-              Notas adicionales (opcional)
+            <label className="block text-xs font-semibold text-[#454652] mb-1.5">
+              Estado inicial de la reserva
+            </label>
+            <select
+              value={status}
+              onChange={(e) => setStatus(e.target.value as Reservation['status'])}
+              className="w-full border border-[#e1e3e4] rounded-xl px-3.5 py-2.5 text-sm text-[#191c1d] bg-white focus:border-[#24389c] focus:ring-2 focus:ring-[#24389c]/15 outline-none font-medium cursor-pointer transition-all"
+            >
+              <option value="confirmada">Confirmada</option>
+              <option value="pendiente">Pendiente</option>
+              <option value="en_curso">En curso</option>
+            </select>
+          </div>
+
+          {/* Section 5: Notes */}
+          <div>
+            <label className="block text-xs font-semibold text-[#454652] mb-1.5">
+              Notas adicionales <span className="text-[#757684] font-normal">(opcional)</span>
             </label>
             <textarea
               rows={2}
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              placeholder="Instrucciones especiales, preferencias del cliente..."
-              className="w-full border border-[#e1e3e4] rounded-lg px-3 py-2 text-sm text-[#191c1d] focus:border-[#24389c] outline-none"
+              placeholder="Instrucciones especiales o preferencias del cliente..."
+              className="w-full border border-[#e1e3e4] rounded-xl px-3.5 py-2.5 text-sm text-[#191c1d] focus:border-[#24389c] focus:ring-2 focus:ring-[#24389c]/15 outline-none transition-all placeholder:text-[#a0a1ab] resize-none"
             />
           </div>
 
-          {/* Summary Box */}
-          <div className="p-3 bg-[#f8f9fa] border border-[#e1e3e4] rounded-lg flex items-center justify-between text-xs">
-            <span className="text-[#454652]">
-              Duración: <strong className="text-[#191c1d]">{selectedService?.durationMinutes || 45} min</strong>
-            </span>
-            <span className="text-[#454652]">
-              Precio estimado:{' '}
-              <strong className="text-[#24389c] text-sm">
+          {/* Modern Summary Strip */}
+          <div className="p-3.5 bg-[#f8f9fa] border border-[#e1e3e4] rounded-xl flex items-center justify-between text-xs">
+            <div className="flex items-center gap-1.5 text-[#454652]">
+              <span className="material-symbols-outlined text-[16px] text-[#757684]">schedule</span>
+              <span>Duración: <strong className="text-[#191c1d]">{selectedService?.durationMinutes || 45} min</strong></span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="text-[#757684]">Precio:</span>
+              <strong className="text-[#24389c] text-sm font-bold font-mono">
                 ${Number(selectedService?.price || 0).toLocaleString('es-CO')}
               </strong>
-            </span>
+            </div>
           </div>
 
-          {/* Footer Buttons */}
-          <div className="flex justify-end gap-3 pt-3 border-t border-[#e1e3e4]">
+          {/* Footer Action Buttons */}
+          <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-[#e1e3e4]">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 border border-[#e1e3e4] rounded-lg text-sm text-[#454652] hover:bg-[#f3f4f5] font-medium transition-colors"
+              className="h-10 px-4 border border-[#e1e3e4] rounded-xl text-xs text-[#454652] hover:bg-[#f3f4f5] font-semibold transition-colors cursor-pointer"
             >
               Cancelar
             </button>
             <button
               type="submit"
-              className="px-5 py-2 bg-[#24389c] hover:bg-[#1d2d7c] text-white font-semibold rounded-lg text-sm shadow-xs transition-colors"
+              className="h-10 px-5 bg-[#24389c] hover:bg-[#1d2d7c] text-white font-bold rounded-xl text-xs shadow-xs transition-all cursor-pointer flex items-center gap-1.5 active:scale-[0.98]"
             >
-              Confirmar reserva
+              <span className="material-symbols-outlined text-[16px]">check</span>
+              <span>Confirmar reserva</span>
             </button>
           </div>
         </form>
