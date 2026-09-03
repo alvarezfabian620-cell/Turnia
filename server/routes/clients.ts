@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { getPool, ClientItem } from '../db.js';
+import { broadcastEvent, broadcastNotification } from '../websocket.js';
 
 export const clientsRouter = Router();
 
@@ -53,19 +54,36 @@ clientsRouter.post('/', async (req: Request, res: Response) => {
     );
 
     // Audit activity
+    const activityItem = {
+      id: `act-${Date.now()}`,
+      title: `Nuevo cliente registrado: ${newClient.name}`,
+      clientName: newClient.name,
+      timeAgo: 'Justo ahora',
+      type: 'new_client',
+      amount: null,
+      timestamp: new Date().toISOString(),
+    };
+
     await pool.query(
       `INSERT INTO activities (id, title, client_name, time_ago, type, amount, timestamp)
        VALUES (?, ?, ?, ?, ?, ?, ?)`,
       [
-        `act-${Date.now()}`,
-        `Nuevo cliente registrado: ${newClient.name}`,
-        newClient.name,
-        'Justo ahora',
-        'new_client',
-        null,
-        new Date().toISOString(),
+        activityItem.id,
+        activityItem.title,
+        activityItem.clientName,
+        activityItem.timeAgo,
+        activityItem.type,
+        activityItem.amount,
+        activityItem.timestamp,
       ]
     );
+
+    broadcastNotification(activityItem);
+    broadcastEvent({
+      type: 'DATA_UPDATE',
+      entity: 'clients',
+      data: newClient,
+    });
 
     res.status(201).json(newClient);
   } catch (err: any) {
@@ -108,6 +126,12 @@ clientsRouter.put('/:id', async (req: Request, res: Response) => {
       notes,
     };
 
+    broadcastEvent({
+      type: 'DATA_UPDATE',
+      entity: 'clients',
+      data: updatedClient,
+    });
+
     res.json(updatedClient);
   } catch (err: any) {
     res.status(500).json({ error: err.message });
@@ -124,6 +148,12 @@ clientsRouter.delete('/:id', async (req: Request, res: Response) => {
     if (result.affectedRows === 0) {
       return res.status(404).json({ error: 'Cliente no encontrado' });
     }
+
+    broadcastEvent({
+      type: 'DATA_UPDATE',
+      entity: 'clients',
+      data: { id, deleted: true },
+    });
 
     res.json({ success: true, id });
   } catch (err: any) {

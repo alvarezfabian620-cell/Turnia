@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { getPool, Reservation } from '../db.js';
+import { broadcastEvent, broadcastNotification } from '../websocket.js';
 
 export const reservationsRouter = Router();
 
@@ -127,19 +128,37 @@ reservationsRouter.post('/', async (req: Request, res: Response) => {
     );
 
     // Audit activity
+    const activityItem = {
+      id: `act-${Date.now()}`,
+      title: `Nueva reserva agendada: ${newRes.clientName} (${newRes.serviceName})`,
+      clientName: newRes.clientName,
+      timeAgo: 'Justo ahora',
+      type: 'new_booking',
+      amount: newRes.price,
+      timestamp: new Date().toISOString(),
+    };
+
     await pool.query(
       `INSERT INTO activities (id, title, client_name, time_ago, type, amount, timestamp)
        VALUES (?, ?, ?, ?, ?, ?, ?)`,
       [
-        `act-${Date.now()}`,
-        `Nueva reserva agendada: ${newRes.clientName} (${newRes.serviceName})`,
-        newRes.clientName,
-        'Justo ahora',
-        'new_booking',
-        newRes.price,
-        new Date().toISOString(),
+        activityItem.id,
+        activityItem.title,
+        activityItem.clientName,
+        activityItem.timeAgo,
+        activityItem.type,
+        activityItem.amount,
+        activityItem.timestamp,
       ]
     );
+
+    // Broadcast WebSocket notification and data refresh in real-time
+    broadcastNotification(activityItem);
+    broadcastEvent({
+      type: 'DATA_UPDATE',
+      entity: 'reservations',
+      data: newRes,
+    });
 
     res.status(201).json(newRes);
   } catch (err: any) {
@@ -206,6 +225,12 @@ reservationsRouter.put('/:id', async (req: Request, res: Response) => {
       createdAt: current.created_at,
     };
 
+    broadcastEvent({
+      type: 'DATA_UPDATE',
+      entity: 'reservations',
+      data: updatedRes,
+    });
+
     res.json(updatedRes);
   } catch (err: any) {
     res.status(500).json({ error: err.message });
@@ -227,20 +252,31 @@ reservationsRouter.patch('/:id/status', async (req: Request, res: Response) => {
     const current = rows[0];
     await pool.query('UPDATE reservations SET status = ? WHERE id = ?', [status, id]);
 
+    let activityItem: any = null;
     if (status === 'cancelada') {
+      activityItem = {
+        id: `act-${Date.now()}`,
+        title: `Reserva cancelada: ${current.client_name}`,
+        clientName: current.client_name,
+        timeAgo: 'Justo ahora',
+        type: 'cancellation',
+        amount: null,
+        timestamp: new Date().toISOString(),
+      };
       await pool.query(
         `INSERT INTO activities (id, title, client_name, time_ago, type, amount, timestamp)
          VALUES (?, ?, ?, ?, ?, ?, ?)`,
         [
-          `act-${Date.now()}`,
-          `Reserva cancelada: ${current.client_name}`,
-          current.client_name,
-          'Justo ahora',
-          'cancellation',
-          null,
-          new Date().toISOString(),
+          activityItem.id,
+          activityItem.title,
+          activityItem.clientName,
+          activityItem.timeAgo,
+          activityItem.type,
+          activityItem.amount,
+          activityItem.timestamp,
         ]
       );
+      broadcastNotification(activityItem);
     }
 
     const updatedRes: Reservation = {
@@ -262,6 +298,12 @@ reservationsRouter.patch('/:id/status', async (req: Request, res: Response) => {
       createdAt: current.created_at,
     };
 
+    broadcastEvent({
+      type: 'DATA_UPDATE',
+      entity: 'reservations',
+      data: updatedRes,
+    });
+
     res.json(updatedRes);
   } catch (err: any) {
     res.status(500).json({ error: err.message });
@@ -278,6 +320,12 @@ reservationsRouter.delete('/:id', async (req: Request, res: Response) => {
     if (result.affectedRows === 0) {
       return res.status(404).json({ error: 'Reserva no encontrada' });
     }
+
+    broadcastEvent({
+      type: 'DATA_UPDATE',
+      entity: 'reservations',
+      data: { id, deleted: true },
+    });
 
     res.json({ success: true, id });
   } catch (err: any) {

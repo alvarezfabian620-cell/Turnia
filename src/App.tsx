@@ -28,14 +28,14 @@ import { NewReservationModal } from './components/NewReservationModal';
 import { ReservationDetailsModal } from './components/ReservationDetailsModal';
 import { NewServiceModal } from './components/NewServiceModal';
 import { NewProfessionalModal } from './components/NewProfessionalModal';
-import { AdminProfileModal } from './components/AdminProfileModal';
-import { Toast } from './components/Toast';
+import { wsService } from './services/websocket';
 
 export function App() {
   // Authentication States
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [authUser, setAuthUser] = useState<AuthUser | null>(null);
   const [isAuthChecking, setIsAuthChecking] = useState<boolean>(true);
+  const [isConnectedWS, setIsConnectedWS] = useState<boolean>(false);
 
   // Navigation State
   const [currentView, setCurrentView] = useState<ViewMode>('dashboard');
@@ -145,6 +145,47 @@ export function App() {
     checkAuthSession();
   }, [fetchAllData]);
 
+  // Real-time WebSocket connection and event subscriptions
+  useEffect(() => {
+    if (!isAuthenticated) {
+      wsService.disconnect();
+      setIsConnectedWS(false);
+      return;
+    }
+
+    wsService.connect();
+    setIsConnectedWS(true);
+
+    // Real-time Notification listener
+    const unsubNotif = wsService.onNotification((activity) => {
+      setActivities((prev) => [activity, ...prev.filter((a) => a.id !== activity.id)]);
+      showToast(`🔔 ${activity.title}`, 'info');
+    });
+
+    // Real-time Data Sync listener
+    const unsubData = wsService.onDataUpdate(async (entity) => {
+      try {
+        if (entity === 'reservations') {
+          const res = await api.reservations.getAll();
+          setReservations(res);
+        } else if (entity === 'clients') {
+          const cli = await api.clients.getAll();
+          setClients(cli);
+        } else if (entity === 'activities') {
+          const act = await api.activities.getAll();
+          setActivities(act);
+        }
+      } catch (err) {
+        console.warn('Error refreshing data from WS event:', err);
+      }
+    });
+
+    return () => {
+      unsubNotif();
+      unsubData();
+    };
+  }, [isAuthenticated]);
+
   // Auth Handlers
   const handleLoginSuccess = async (user: AuthUser) => {
     setAuthUser(user);
@@ -154,10 +195,31 @@ export function App() {
   };
 
   const handleLogout = () => {
+    wsService.disconnect();
     api.auth.logout();
     setIsAuthenticated(false);
     setAuthUser(null);
     showToast('Has cerrado sesión correctamente.', 'info');
+  };
+
+  // Notification Drawer Handlers
+  const handleClearAllNotifications = async () => {
+    try {
+      await api.activities.clearAll();
+      setActivities([]);
+      showToast('Todas las notificaciones han sido eliminadas.', 'info');
+    } catch (err: any) {
+      showToast('Error al limpiar notificaciones', 'error');
+    }
+  };
+
+  const handleDeleteNotification = async (id: string) => {
+    try {
+      await api.activities.delete(id);
+      setActivities((prev) => prev.filter((a) => a.id !== id));
+    } catch (err: any) {
+      console.warn('Error deleting notification:', err);
+    }
   };
 
   // Handlers for Reservations
@@ -421,6 +483,9 @@ export function App() {
           onNavigate={(view) => {
             setCurrentView(view);
           }}
+          onClearNotifications={handleClearAllNotifications}
+          onDeleteNotification={handleDeleteNotification}
+          isConnectedWS={isConnectedWS}
         />
 
         {/* View Main Content Container */}

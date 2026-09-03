@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { getPool, ActivityItem } from '../db.js';
+import { broadcastEvent } from '../websocket.js';
 
 export const activitiesRouter = Router();
 
@@ -18,6 +19,39 @@ activitiesRouter.get('/', async (req: Request, res: Response) => {
       timestamp: r.timestamp,
     }));
     res.json(activities);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// DELETE /api/activities (Clear all notifications)
+activitiesRouter.delete('/', async (req: Request, res: Response) => {
+  try {
+    const pool = getPool();
+    await pool.query('DELETE FROM activities');
+    broadcastEvent({
+      type: 'DATA_UPDATE',
+      entity: 'activities',
+      message: 'Todas las notificaciones han sido eliminadas.',
+    });
+    res.json({ success: true, message: 'Todas las notificaciones han sido eliminadas.' });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// DELETE /api/activities/:id (Delete specific notification)
+activitiesRouter.delete('/:id', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const pool = getPool();
+    await pool.query('DELETE FROM activities WHERE id = ?', [id]);
+    broadcastEvent({
+      type: 'DATA_UPDATE',
+      entity: 'activities',
+      data: { id },
+    });
+    res.json({ success: true, id });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }

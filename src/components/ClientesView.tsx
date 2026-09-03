@@ -186,23 +186,23 @@ export const ClientesView: React.FC<ClientesViewProps> = ({
                     </td>
                     <td className="py-3.5 px-4 text-xs text-[#757684]">{client.lastVisit || 'Sin citas'}</td>
                     <td className="py-3.5 px-4 text-right">
-                      <div className="flex items-center justify-end gap-1.5">
+                      <div className="inline-flex items-center gap-1.5 p-1 bg-[#f8f9fa] border border-[#e1e3e4] rounded-xl shadow-2xs">
                         {onOpenNewBookingWithClient && (
                           <button
                             onClick={() => onOpenNewBookingWithClient(client)}
-                            className="inline-flex items-center gap-1 px-2.5 py-1 bg-[#dee0ff]/60 hover:bg-[#dee0ff] text-[#24389c] text-xs font-semibold rounded-lg transition-colors"
-                            title="Agendar cita"
+                            className="h-8 px-2.5 bg-[#24389c] hover:bg-[#1d2d7c] text-white text-xs font-bold rounded-lg transition-all flex items-center gap-1 shadow-2xs cursor-pointer active:scale-95"
+                            title="Agendar nueva cita para este cliente"
                           >
-                            <span className="material-symbols-outlined text-[16px]">add</span>
-                            <span>Agendar</span>
+                            <span className="material-symbols-outlined text-[15px]">add</span>
+                            <span className="hidden sm:inline">Cita</span>
                           </button>
                         )}
                         <button
                           onClick={() => openEditModal(client)}
-                          className="p-1 text-[#757684] hover:text-[#24389c] hover:bg-[#f3f4f5] rounded-lg transition-colors"
+                          className="w-8 h-8 rounded-lg bg-white border border-[#e1e3e4] hover:border-[#24389c] text-[#454652] hover:text-[#24389c] hover:bg-[#f3f4f5] transition-all flex items-center justify-center shadow-2xs cursor-pointer"
                           title="Editar cliente"
                         >
-                          <span className="material-symbols-outlined text-[18px]">edit</span>
+                          <span className="material-symbols-outlined text-[17px]">edit</span>
                         </button>
                         <button
                           onClick={() => {
@@ -210,10 +210,10 @@ export const ClientesView: React.FC<ClientesViewProps> = ({
                               onDeleteClient(client.id);
                             }
                           }}
-                          className="p-1 text-[#ba1a1a] hover:bg-[#ffdad6]/40 rounded-lg transition-colors"
+                          className="w-8 h-8 rounded-lg bg-white border border-[#e1e3e4] hover:border-[#ba1a1a] text-[#ba1a1a] hover:bg-[#ffdad6]/50 transition-all flex items-center justify-center shadow-2xs cursor-pointer"
                           title="Eliminar cliente"
                         >
-                          <span className="material-symbols-outlined text-[18px]">delete</span>
+                          <span className="material-symbols-outlined text-[17px]">delete</span>
                         </button>
                       </div>
                     </td>

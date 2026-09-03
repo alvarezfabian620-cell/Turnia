@@ -209,5 +209,15 @@ export const api = {
   activities: {
     getAll: (): Promise<ActivityItem[]> =>
       fetch(`${API_BASE}/activities`, { headers: getAuthHeaders() }).then(handleResponse),
+    clearAll: (): Promise<{ success: boolean; message: string }> =>
+      fetch(`${API_BASE}/activities`, {
+        method: 'DELETE',
+        headers: getAuthHeaders(),
+      }).then(handleResponse),
+    delete: (id: string): Promise<{ success: boolean; id: string }> =>
+      fetch(`${API_BASE}/activities/${id}`, {
+        method: 'DELETE',
+        headers: getAuthHeaders(),
+      }).then(handleResponse),
   },
 };
