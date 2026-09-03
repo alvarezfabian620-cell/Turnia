@@ -93,14 +93,6 @@ export const ClientesView: React.FC<ClientesViewProps> = ({
             Gestiona la base de datos de tus clientes, historial de visitas y notas de atención.
           </p>
         </div>
-
-        <button
-          onClick={openCreateModal}
-          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-[#24389c] hover:bg-[#1d2d7c] text-white rounded-lg text-sm font-semibold shadow-xs transition-colors active:scale-[0.98]"
-        >
-          <span className="material-symbols-outlined text-[20px]">person_add</span>
-          <span>Registrar cliente</span>
-        </button>
       </div>
 
       {/* Search and Total */}
