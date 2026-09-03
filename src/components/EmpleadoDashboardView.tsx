@@ -62,15 +62,7 @@ export const EmpleadoDashboardView: React.FC<EmpleadoDashboardViewProps> = ({
 
   // Completed & stats
   const completedMonth = myReservations.filter((r) => r.status === 'completada').length;
-  const totalRevenueMonth = myReservations
-    .filter((r) => r.status === 'completada')
-    .reduce((sum, r) => sum + (Number(r.price) || 0), 0);
   const pendingCount = myReservations.filter((r) => r.status === 'pendiente' || r.status === 'confirmada').length;
-
-  // Next active appointment
-  const nextAppointment = todayReservations.find(
-    (r) => r.status === 'confirmada' || r.status === 'en_curso' || r.status === 'pendiente'
-  );
 
   return (
     <div className="space-y-6">
@@ -110,7 +102,7 @@ export const EmpleadoDashboardView: React.FC<EmpleadoDashboardViewProps> = ({
       </div>
 
       {/* Employee Personal Metric Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {/* Metric 1: Citas Hoy */}
         <div className="bg-white border border-[#e1e3e4] rounded-2xl p-5 shadow-2xs flex flex-col justify-between hover:border-[#bac3ff] transition-all">
           <div className="flex justify-between items-start mb-2">
@@ -153,21 +145,6 @@ export const EmpleadoDashboardView: React.FC<EmpleadoDashboardViewProps> = ({
           </div>
           <div className="text-3xl font-bold text-[#191c1d] tracking-tight">
             {completedMonth}
-          </div>
-        </div>
-
-        {/* Metric 4: Ingresos Generados */}
-        <div className="bg-white border border-[#e1e3e4] rounded-2xl p-5 shadow-2xs flex flex-col justify-between hover:border-[#bac3ff] transition-all">
-          <div className="flex justify-between items-start mb-2">
-            <span className="text-xs font-bold text-[#757684] uppercase tracking-wider">
-              Ingresos Generados
-            </span>
-            <div className="w-8 h-8 rounded-lg bg-[#dee0ff]/60 text-[#24389c] flex items-center justify-center">
-              <span className="material-symbols-outlined text-[18px]">payments</span>
-            </div>
-          </div>
-          <div className="text-2xl font-bold text-[#191c1d] font-mono tracking-tight">
-            ${totalRevenueMonth.toLocaleString('es-CO')}
           </div>
         </div>
       </div>
@@ -219,58 +196,6 @@ export const EmpleadoDashboardView: React.FC<EmpleadoDashboardViewProps> = ({
             </button>
           </div>
         </div>
-
-        {/* Highlight Banner for Next Upcoming / Active Appointment if any */}
-        {nextAppointment && (
-          <div className="m-5 p-4 bg-[#f8f9fa] border border-[#bac3ff] rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div className="flex items-center gap-3.5">
-              <div className="w-10 h-10 rounded-xl bg-[#dee0ff] text-[#24389c] flex items-center justify-center font-mono font-bold text-xs shrink-0">
-                {nextAppointment.time}
-              </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="text-[10px] uppercase font-bold px-2 py-0.5 bg-[#24389c] text-white rounded-md">
-                    Próxima Cita
-                  </span>
-                  <span className="font-bold text-sm text-[#191c1d]">{nextAppointment.clientName}</span>
-                  {nextAppointment.clientPhone && (
-                    <span className="text-xs font-mono text-[#757684]">({nextAppointment.clientPhone})</span>
-                  )}
-                </div>
-                <div className="text-xs text-[#454652] mt-0.5">
-                  {nextAppointment.serviceName} • <strong className="text-[#191c1d]">${Number(nextAppointment.price || 0).toLocaleString('es-CO')}</strong>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2 shrink-0">
-              {nextAppointment.status !== 'en_curso' && (
-                <button
-                  onClick={() => onUpdateReservationStatus(nextAppointment.id, 'en_curso')}
-                  className="px-3.5 py-1.5 bg-[#24389c] hover:bg-[#1d2d7c] text-white rounded-lg text-xs font-bold transition-colors cursor-pointer shadow-xs"
-                >
-                  Iniciar Atención
-                </button>
-              )}
-              <button
-                onClick={() => onUpdateReservationStatus(nextAppointment.id, 'completada')}
-                className="px-3.5 py-1.5 bg-[#e1f5ec] hover:bg-[#a7f3d0] text-[#047857] border border-[#a7f3d0] rounded-lg text-xs font-bold transition-colors cursor-pointer"
-              >
-                Completar
-              </button>
-              <button
-                onClick={() => {
-                  if (window.confirm('¿Deseas cancelar esta cita?')) {
-                    onUpdateReservationStatus(nextAppointment.id, 'cancelada');
-                  }
-                }}
-                className="px-3 py-1.5 bg-white hover:bg-[#ffdad6]/40 text-[#ba1a1a] border border-[#ffdad6] rounded-lg text-xs font-semibold transition-colors cursor-pointer"
-              >
-                Cancelar
-              </button>
-            </div>
-          </div>
-        )}
 
         {/* Schedule Table */}
         <div className="overflow-x-auto">
