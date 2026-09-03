@@ -514,9 +514,6 @@ export const CalendarioView: React.FC<CalendarioViewProps> = ({
       {/* 3. DAY VIEW (Detailed Single Day View) */}
       {calendarMode === 'dia' && (
         <div className="bg-white border border-[#e1e3e4] rounded-2xl overflow-hidden shadow-2xs">
-          <div className="py-3 px-4 bg-[#f8f9fa] border-b border-[#e1e3e4] font-bold text-sm text-[#191c1d]">
-            Horario del Día: {activeDate.toLocaleDateString('es-CO', { dateStyle: 'full' })}
-          </div>
           <div className="divide-y divide-[#e1e3e4]">
             {hours.map((hour, hourIdx) => {
               const activeDateStr = `${activeDate.getFullYear()}-${String(activeDate.getMonth() + 1).padStart(2, '0')}-${String(activeDate.getDate()).padStart(2, '0')}`;
