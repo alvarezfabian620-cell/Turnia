@@ -107,14 +107,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             Aquí tienes un resumen de la actividad en tiempo real de tu negocio.
           </p>
         </div>
-
-        <button
-          onClick={onOpenNewBooking}
-          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-[#24389c] hover:bg-[#1d2d7c] text-white rounded-lg text-sm font-semibold shadow-xs transition-colors active:scale-[0.98]"
-        >
-          <span className="material-symbols-outlined text-[20px]">add</span>
-          <span>Nueva reserva</span>
-        </button>
       </div>
 
       {/* 4 Bento Stat Cards */}
@@ -273,41 +265,71 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             </div>
 
             {upcomingReservations.length === 0 ? (
-              <div className="py-6 text-center text-xs text-[#757684]">
+              <div className="py-8 text-center text-xs text-[#757684]">
                 No hay próximas reservas agendadas.
               </div>
             ) : (
-              <ul className="flex flex-col gap-3.5">
-                {upcomingReservations.map((res) => (
-                  <li
-                    key={res.id}
-                    onClick={() => onSelectReservation(res)}
-                    className="flex gap-3 items-center p-2 rounded-lg hover:bg-[#f8f9fa] transition-colors cursor-pointer group"
-                  >
-                    <div className="w-11 h-11 rounded-lg bg-[#f3f4f5] border border-[#e1e3e4] flex flex-col items-center justify-center shrink-0 group-hover:border-[#24389c] transition-colors">
-                      <span className="text-[10px] uppercase font-semibold text-[#757684] leading-none">
-                        {res.date === todayStr ? 'Hoy' : res.date.slice(5)}
-                      </span>
-                      <span className="text-xs font-bold text-[#191c1d] font-mono leading-none mt-1">
-                        {res.time}
-                      </span>
-                    </div>
-                    <div className="flex flex-col min-w-0">
-                      <span className="text-sm font-semibold text-[#191c1d] group-hover:text-[#24389c] transition-colors truncate">
-                        {res.clientName} - {res.serviceName}
-                      </span>
-                      <span className="text-xs text-[#757684] truncate">Con: {res.professionalName}</span>
-                    </div>
-                  </li>
-                ))}
+              <ul className="flex flex-col gap-2.5">
+                {upcomingReservations.map((res) => {
+                  const isToday = res.date === todayStr;
+                  const [year, month, day] = (res.date || '').split('-');
+                  const monthNames = [
+                    'ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN',
+                    'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC'
+                  ];
+                  const monthName = month ? monthNames[parseInt(month, 10) - 1] || 'MES' : 'MES';
+
+                  return (
+                    <li
+                      key={res.id}
+                      onClick={() => onSelectReservation(res)}
+                      className="flex items-center justify-between p-3 rounded-xl border border-[#f3f4f5] hover:border-[#bac3ff] hover:bg-[#f8f9fa] transition-all cursor-pointer group gap-3 shadow-2xs"
+                    >
+                      {/* Left: Modern Mini Calendar Tag */}
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-12 h-12 rounded-xl bg-white border border-[#e1e3e4] overflow-hidden flex flex-col items-center justify-center shrink-0 shadow-2xs group-hover:border-[#24389c] transition-colors">
+                          <span
+                            className={`w-full text-center text-[9px] font-extrabold uppercase py-0.5 tracking-wider ${
+                              isToday
+                                ? 'bg-[#24389c] text-white'
+                                : 'bg-[#dee0ff] text-[#24389c]'
+                            }`}
+                          >
+                            {isToday ? 'HOY' : monthName}
+                          </span>
+                          <span className="text-sm font-black text-[#191c1d] leading-none py-1">
+                            {day || '--'}
+                          </span>
+                        </div>
+
+                        {/* Center Info */}
+                        <div className="flex flex-col min-w-0">
+                          <span className="text-sm font-bold text-[#191c1d] group-hover:text-[#24389c] transition-colors truncate">
+                            {res.clientName}
+                          </span>
+                          <span className="text-xs text-[#757684] truncate mt-0.5">
+                            {res.serviceName} · <span className="text-[#454652] font-medium">{res.professionalName}</span>
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Right: Clean Time Pill */}
+                      <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#f3f4f5] text-[#191c1d] font-semibold text-xs shrink-0 group-hover:bg-[#dee0ff] group-hover:text-[#24389c] transition-colors">
+                        <span className="material-symbols-outlined text-[15px]">schedule</span>
+                        <span className="font-mono">{res.time}</span>
+                      </div>
+                    </li>
+                  );
+                })}
               </ul>
             )}
 
             <button
               onClick={() => onNavigate('calendario')}
-              className="w-full mt-4 py-2 bg-transparent border border-[#e1e3e4] text-[#191c1d] hover:bg-[#f3f4f5] hover:text-[#24389c] rounded-lg text-sm font-medium transition-colors"
+              className="w-full mt-4 py-2.5 bg-transparent border border-[#e1e3e4] text-[#191c1d] hover:bg-[#f3f4f5] hover:text-[#24389c] hover:border-[#24389c]/40 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5"
             >
-              Ver Calendario
+              <span className="material-symbols-outlined text-[16px]">calendar_month</span>
+              <span>Ver Calendario</span>
             </button>
           </div>
 
