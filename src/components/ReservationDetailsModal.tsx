@@ -85,6 +85,7 @@ export const ReservationDetailsModal: React.FC<ReservationDetailsModalProps> = (
 
         {/* Content */}
         <div className="space-y-4">
+          {/* Client & Status banner */}
           <div className="flex justify-between items-center p-3.5 bg-[#f8f9fa] rounded-xl border border-[#e1e3e4]">
             <div>
               <span className="text-xs text-[#757684] block font-medium">Cliente</span>
@@ -93,22 +94,32 @@ export const ReservationDetailsModal: React.FC<ReservationDetailsModalProps> = (
             <div>{getStatusBadge(reservation.status)}</div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3.5 text-xs">
-            <div className="p-3.5 bg-[#f8f9fa] rounded-xl border border-[#e1e3e4]">
-              <span className="text-[#757684] block font-medium">Fecha y Hora</span>
-              <span className="font-bold text-[#191c1d] text-sm mt-0.5 block font-mono">
-                {reservation.date} · {reservation.time}
+          {/* Separated Info Blocks: Fecha/Hora, Duración, Tarifa */}
+          <div className="grid grid-cols-3 gap-2.5 text-xs">
+            <div className="p-3 bg-[#f8f9fa] rounded-xl border border-[#e1e3e4] flex flex-col justify-between">
+              <span className="text-[#757684] block font-semibold text-[11px] uppercase tracking-wider">Fecha y Hora</span>
+              <span className="font-bold text-[#191c1d] text-xs sm:text-sm mt-1 block font-mono">
+                {reservation.date} <br />
+                <span className="text-[#24389c]">{reservation.time}</span>
               </span>
             </div>
 
-            <div className="p-3.5 bg-[#f8f9fa] rounded-xl border border-[#e1e3e4]">
-              <span className="text-[#757684] block font-medium">Duración & Tarifa</span>
-              <span className="font-bold text-[#24389c] text-sm mt-0.5 block">
-                {reservation.durationMinutes} min · ${Number(reservation.price || 0).toLocaleString('es-CO')}
+            <div className="p-3 bg-[#f8f9fa] rounded-xl border border-[#e1e3e4] flex flex-col justify-between">
+              <span className="text-[#757684] block font-semibold text-[11px] uppercase tracking-wider">Duración</span>
+              <span className="font-bold text-[#191c1d] text-xs sm:text-sm mt-1 block">
+                {reservation.durationMinutes} min
+              </span>
+            </div>
+
+            <div className="p-3 bg-[#f8f9fa] rounded-xl border border-[#e1e3e4] flex flex-col justify-between">
+              <span className="text-[#757684] block font-semibold text-[11px] uppercase tracking-wider">Tarifa</span>
+              <span className="font-bold text-[#24389c] text-xs sm:text-sm mt-1 block font-mono">
+                ${Number(reservation.price || 0).toLocaleString('es-CO')}
               </span>
             </div>
           </div>
 
+          {/* Service and Professional details */}
           <div className="space-y-2.5 pt-3 border-t border-[#f3f4f5]">
             <div className="flex justify-between text-xs">
               <span className="text-[#757684]">Servicio contratado:</span>
@@ -174,14 +185,14 @@ export const ReservationDetailsModal: React.FC<ReservationDetailsModalProps> = (
             )}
           </div>
 
-          {/* Right: Cancel & Save Actions */}
-          <div className="flex items-center gap-2.5 w-full sm:w-auto justify-end">
+          {/* Right: Close, Cancel Appointment, and Save Actions */}
+          <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 border border-[#e1e3e4] rounded-xl text-xs text-[#454652] hover:bg-[#f3f4f5] font-semibold transition-colors cursor-pointer"
+              className="px-3.5 py-2 border border-[#e1e3e4] rounded-xl text-xs text-[#454652] hover:bg-[#f3f4f5] font-semibold transition-colors cursor-pointer"
             >
-              Cancelar
+              Cerrar
             </button>
 
             {reservation.status !== 'cancelada' && (
@@ -193,17 +204,17 @@ export const ReservationDetailsModal: React.FC<ReservationDetailsModalProps> = (
                     onClose();
                   }
                 }}
-                className="px-4 py-2 bg-[#ffdad6]/60 text-[#ba1a1a] hover:bg-[#ffdad6] border border-[#ffdad6] rounded-xl text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5"
+                className="px-3.5 py-2 bg-[#ffdad6]/60 text-[#ba1a1a] hover:bg-[#ffdad6] border border-[#ffdad6] rounded-xl text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5"
               >
                 <span className="material-symbols-outlined text-[16px]">cancel</span>
-                <span>Anular Cita</span>
+                <span>Cancelar Cita</span>
               </button>
             )}
 
             <button
               type="button"
               onClick={handleStatusSave}
-              className="px-5 py-2 bg-[#24389c] hover:bg-[#1d2d7c] text-white font-bold rounded-xl text-xs shadow-xs transition-colors cursor-pointer"
+              className="px-4 py-2 bg-[#24389c] hover:bg-[#1d2d7c] text-white font-bold rounded-xl text-xs shadow-xs transition-colors cursor-pointer"
             >
               Guardar Estado
             </button>
