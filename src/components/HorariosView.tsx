@@ -35,17 +35,17 @@ export const HorariosView: React.FC<HorariosViewProps> = ({
       const breakBlocks = (d.blocks || []).filter((b) => b.isBreak);
 
       // Find earliest start and latest end
-      let openTime = '09:00';
-      let closeTime = '19:00';
+      let openTime = '08:00';
+      let closeTime = '18:00';
 
       if (workingBlocks.length > 0) {
-        openTime = workingBlocks[0].start || '09:00';
-        closeTime = workingBlocks[workingBlocks.length - 1].end || '19:00';
+        openTime = workingBlocks[0].start || '08:00';
+        closeTime = workingBlocks[workingBlocks.length - 1].end || '18:00';
       }
 
       const hasBreak = breakBlocks.length > 0;
-      const breakStart = hasBreak ? breakBlocks[0].start : '13:00';
-      const breakEnd = hasBreak ? breakBlocks[0].end : '14:00';
+      const breakStart = hasBreak ? breakBlocks[0].start : '12:00';
+      const breakEnd = hasBreak ? breakBlocks[0].end : '13:00';
 
       return {
         dayCode: d.dayCode,
@@ -114,7 +114,7 @@ export const HorariosView: React.FC<HorariosViewProps> = ({
       const blocks: TimeBlock[] = [];
 
       if (row.active) {
-        // Main working block
+        // Main business working block
         blocks.push({
           id: `work-${row.dayCode}`,
           start: row.openTime,
@@ -157,7 +157,7 @@ export const HorariosView: React.FC<HorariosViewProps> = ({
             Horarios y Disponibilidad
           </h2>
           <p className="text-[#454652] text-sm md:text-base mt-1">
-            Configura el horario de apertura, cierre y descansos de tu negocio.
+            Define el horario oficial de apertura, cierre y descansos de tu negocio.
           </p>
         </div>
 
@@ -179,7 +179,7 @@ export const HorariosView: React.FC<HorariosViewProps> = ({
         {/* Table Toolbar */}
         <div className="px-6 py-3.5 bg-[#f8f9fa] border-b border-[#e1e3e4] flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <span className="font-bold text-xs text-[#454652] uppercase tracking-wider">
-            Horario semanal por días
+            Horario oficial de atención por días
           </span>
           <button
             onClick={handleCopyMondayToAll}
@@ -193,11 +193,11 @@ export const HorariosView: React.FC<HorariosViewProps> = ({
 
         {/* Schedule Table */}
         <div className="overflow-x-auto w-full">
-          <table className="w-full text-left border-collapse min-w-[760px]">
+          <table className="w-full text-left border-collapse min-w-[780px]">
             <thead>
               <tr className="border-b border-[#e1e3e4] bg-[#f8f9fa]/60 text-xs font-bold text-[#757684] uppercase tracking-wider">
                 <th className="py-3.5 px-6 w-48">Día</th>
-                <th className="py-3.5 px-6 w-72">Horario de Atención</th>
+                <th className="py-3.5 px-6 w-[360px]">Horario del Negocio (Apertura y Cierre)</th>
                 <th className="py-3.5 px-6">Pausa / Almuerzo (Opcional)</th>
                 <th className="py-3.5 px-6 text-right w-36">Estado</th>
               </tr>
@@ -239,30 +239,44 @@ export const HorariosView: React.FC<HorariosViewProps> = ({
                       </div>
                     </td>
 
-                    {/* Col 2: Opening & Closing Hours */}
+                    {/* Col 2: Business Opening and Closing Hours */}
                     <td className="py-4 px-6 whitespace-nowrap">
                       {row.active ? (
-                        <div className="inline-flex items-center gap-2">
-                          <input
-                            type="time"
-                            value={row.openTime}
-                            onChange={(e) =>
-                              handleChangeTime(index, 'openTime', e.target.value)
-                            }
-                            className="w-32 px-3 py-1.5 bg-white border border-[#e1e3e4] rounded-xl font-mono font-bold text-xs text-[#191c1d] focus:border-[#24389c] focus:ring-2 focus:ring-[#24389c]/15 outline-none text-center shadow-2xs transition-all"
-                          />
-                          <span className="text-xs font-semibold text-[#757684]">a</span>
-                          <input
-                            type="time"
-                            value={row.closeTime}
-                            onChange={(e) =>
-                              handleChangeTime(index, 'closeTime', e.target.value)
-                            }
-                            className="w-32 px-3 py-1.5 bg-white border border-[#e1e3e4] rounded-xl font-mono font-bold text-xs text-[#191c1d] focus:border-[#24389c] focus:ring-2 focus:ring-[#24389c]/15 outline-none text-center shadow-2xs transition-all"
-                          />
+                        <div className="inline-flex items-center gap-2.5">
+                          {/* Apertura */}
+                          <div className="flex items-center gap-1.5 bg-[#f8f9fa] border border-[#e1e3e4] rounded-xl px-2.5 py-1 shadow-2xs">
+                            <span className="text-[10px] font-bold text-[#757684] uppercase tracking-wider">
+                              Abre:
+                            </span>
+                            <input
+                              type="time"
+                              value={row.openTime}
+                              onChange={(e) =>
+                                handleChangeTime(index, 'openTime', e.target.value)
+                              }
+                              className="w-28 px-2 py-0.5 bg-white border border-[#e1e3e4] rounded-lg font-mono font-bold text-xs text-[#191c1d] focus:border-[#24389c] focus:ring-1 focus:ring-[#24389c]/20 outline-none text-center shadow-2xs"
+                            />
+                          </div>
+
+                          <span className="text-xs font-bold text-[#757684]">—</span>
+
+                          {/* Cierre */}
+                          <div className="flex items-center gap-1.5 bg-[#f8f9fa] border border-[#e1e3e4] rounded-xl px-2.5 py-1 shadow-2xs">
+                            <span className="text-[10px] font-bold text-[#757684] uppercase tracking-wider">
+                              Cierra:
+                            </span>
+                            <input
+                              type="time"
+                              value={row.closeTime}
+                              onChange={(e) =>
+                                handleChangeTime(index, 'closeTime', e.target.value)
+                              }
+                              className="w-28 px-2 py-0.5 bg-white border border-[#e1e3e4] rounded-lg font-mono font-bold text-xs text-[#191c1d] focus:border-[#24389c] focus:ring-1 focus:ring-[#24389c]/20 outline-none text-center shadow-2xs"
+                            />
+                          </div>
                         </div>
                       ) : (
-                        <span className="text-xs text-[#a0a1ab] italic">— No disponible —</span>
+                        <span className="text-xs text-[#a0a1ab] italic">— Cerrado (No laborable) —</span>
                       )}
                     </td>
 
@@ -283,23 +297,28 @@ export const HorariosView: React.FC<HorariosViewProps> = ({
                           </label>
 
                           {row.hasBreak && (
-                            <div className="inline-flex items-center gap-2 animate-in fade-in duration-150">
+                            <div className="inline-flex items-center gap-1.5 bg-[#f8f9fa] border border-[#e1e3e4] rounded-xl px-2.5 py-1 shadow-2xs animate-in fade-in duration-150">
+                              <span className="text-[10px] font-bold text-[#757684] uppercase tracking-wider">
+                                De:
+                              </span>
                               <input
                                 type="time"
                                 value={row.breakStart}
                                 onChange={(e) =>
                                   handleChangeTime(index, 'breakStart', e.target.value)
                                 }
-                                className="w-32 px-3 py-1.5 bg-white border border-[#e1e3e4] rounded-xl font-mono font-bold text-xs text-[#191c1d] focus:border-[#24389c] focus:ring-2 focus:ring-[#24389c]/15 outline-none text-center shadow-2xs transition-all"
+                                className="w-28 px-2 py-0.5 bg-white border border-[#e1e3e4] rounded-lg font-mono font-bold text-xs text-[#191c1d] focus:border-[#24389c] outline-none text-center shadow-2xs"
                               />
-                              <span className="text-xs font-semibold text-[#757684]">a</span>
+                              <span className="text-[10px] font-bold text-[#757684] uppercase tracking-wider">
+                                A:
+                              </span>
                               <input
                                 type="time"
                                 value={row.breakEnd}
                                 onChange={(e) =>
                                   handleChangeTime(index, 'breakEnd', e.target.value)
                                 }
-                                className="w-32 px-3 py-1.5 bg-white border border-[#e1e3e4] rounded-xl font-mono font-bold text-xs text-[#191c1d] focus:border-[#24389c] focus:ring-2 focus:ring-[#24389c]/15 outline-none text-center shadow-2xs transition-all"
+                                className="w-28 px-2 py-0.5 bg-white border border-[#e1e3e4] rounded-lg font-mono font-bold text-xs text-[#191c1d] focus:border-[#24389c] outline-none text-center shadow-2xs"
                               />
                             </div>
                           )}
