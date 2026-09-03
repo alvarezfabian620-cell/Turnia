@@ -19,27 +19,39 @@ export const CalendarioView: React.FC<CalendarioViewProps> = ({
   const [currentWeekOffset, setCurrentWeekOffset] = useState<number>(0);
   const [calendarMode, setCalendarMode] = useState<'semana' | 'dia'>('semana');
 
-  // Compute 7 days of the active week
+  // Compute 7 days of the active week using LOCAL time (avoiding UTC toISOString timezone shifts)
   const weekDays = useMemo(() => {
     const today = new Date();
-    const startOfWeek = new Date(today);
-    // Find current Monday
-    const currentDay = today.getDay();
+    const currentDay = today.getDay(); // 0 is Sun, 1 is Mon...
     const distanceToMonday = currentDay === 0 ? -6 : 1 - currentDay;
-    startOfWeek.setDate(today.getDate() + distanceToMonday + currentWeekOffset * 7);
+
+    // Start on Monday of the target week
+    const monday = new Date(
+      today.getFullYear(),
+      today.getMonth(),
+      today.getDate() + distanceToMonday + currentWeekOffset * 7
+    );
 
     const days = [];
     const dayNames = ['LUN', 'MAR', 'MIÉ', 'JUE', 'VIE', 'SÁB', 'DOM'];
 
     for (let i = 0; i < 7; i++) {
-      const d = new Date(startOfWeek);
-      d.setDate(startOfWeek.getDate() + i);
-      const isToday = d.toDateString() === today.toDateString();
-      const fullDate = d.toISOString().split('T')[0];
+      const d = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + i);
+      const isToday =
+        d.getFullYear() === today.getFullYear() &&
+        d.getMonth() === today.getMonth() &&
+        d.getDate() === today.getDate();
+
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const dateNum = String(d.getDate()).padStart(2, '0');
+      const fullDate = `${year}-${month}-${dateNum}`;
 
       days.push({
         name: dayNames[i],
         dateNum: d.getDate(),
+        month: d.getMonth(),
+        year: d.getFullYear(),
         fullDate,
         isToday,
       });
@@ -47,16 +59,23 @@ export const CalendarioView: React.FC<CalendarioViewProps> = ({
     return days;
   }, [currentWeekOffset]);
 
-  // Header Title formatted: "16 - 22 Octubre, 2023"
+  // Header Title formatted dynamically with actual month and year
   const weekTitle = useMemo(() => {
     if (weekDays.length === 0) return '';
-    const first = new Date(weekDays[0].fullDate);
-    const last = new Date(weekDays[6].fullDate);
+    const first = weekDays[0];
+    const last = weekDays[6];
     const monthNames = [
       'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
       'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
     ];
-    return `${first.getDate()} - ${last.getDate()} ${monthNames[first.getMonth()]}, ${first.getFullYear()}`;
+
+    if (first.month === last.month) {
+      return `${first.dateNum} - ${last.dateNum} ${monthNames[first.month]}, ${first.year}`;
+    }
+    if (first.year === last.year) {
+      return `${first.dateNum} ${monthNames[first.month]} - ${last.dateNum} ${monthNames[last.month]}, ${first.year}`;
+    }
+    return `${first.dateNum} ${monthNames[first.month]} ${first.year} - ${last.dateNum} ${monthNames[last.month]} ${last.year}`;
   }, [weekDays]);
 
   // Working Hours (08:00 to 20:00)
@@ -261,9 +280,8 @@ export const CalendarioView: React.FC<CalendarioViewProps> = ({
                           <div className="text-[11px] text-[#454652] truncate mt-0.5 font-medium">
                             {evt.serviceName}
                           </div>
-                          <div className="flex items-center gap-1 mt-1 text-[10px] font-mono text-[#24389c] font-bold">
-                            <span className="material-symbols-outlined text-[13px]">schedule</span>
-                            <span>{evt.time} - {evt.endTime || 'Fin'}</span>
+                          <div className="mt-1 text-[11px] font-mono text-[#24389c] font-bold tracking-tight">
+                            {evt.time} - {evt.endTime || 'Fin'}
                           </div>
                         </div>
                       ))}
