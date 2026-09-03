@@ -575,6 +575,7 @@ export function App() {
               {currentView === 'profesionales' && (
                 <ProfesionalesView
                   professionals={professionals}
+                  reservations={reservations}
                   onOpenNewProfessional={() => {
                     setEditingProfessional(null);
                     setIsNewProfessionalOpen(true);
@@ -584,7 +585,7 @@ export function App() {
                     setIsNewProfessionalOpen(true);
                   }}
                   onDeleteProfessional={handleDeleteProfessional}
-                  onNavigateToSchedule={() => setCurrentView('horarios')}
+                  onNavigate={setCurrentView}
                   searchQuery={searchQuery}
                 />
               )}
