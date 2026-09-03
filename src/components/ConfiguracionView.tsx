@@ -15,8 +15,6 @@ export const ConfiguracionView: React.FC<ConfiguracionViewProps> = ({
   );
   const [form, setForm] = useState<BusinessConfig>(initialConfig);
   const [isSaved, setIsSaved] = useState(false);
-  const [showUrlInput, setShowUrlInput] = useState(false);
-  const [customUrl, setCustomUrl] = useState('');
   const [imageError, setImageError] = useState(false);
 
   useEffect(() => {
@@ -58,17 +56,6 @@ export const ConfiguracionView: React.FC<ConfiguracionViewProps> = ({
         }
       };
       reader.readAsDataURL(file);
-    }
-  };
-
-  const handleApplyUrl = () => {
-    if (customUrl.trim()) {
-      const updated = { ...form, logoUrl: customUrl.trim() };
-      setForm(updated);
-      setImageError(false);
-      setShowUrlInput(false);
-      setCustomUrl('');
-      onSaveConfig(updated);
     }
   };
 
@@ -218,15 +205,6 @@ export const ConfiguracionView: React.FC<ConfiguracionViewProps> = ({
                     />
                   </label>
 
-                  <button
-                    type="button"
-                    onClick={() => setShowUrlInput(!showUrlInput)}
-                    className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-white border border-[#e1e3e4] hover:bg-[#f3f4f5] text-[#191c1d] rounded-lg text-xs font-medium transition-colors"
-                  >
-                    <span className="material-symbols-outlined text-[16px] text-[#757684]">link</span>
-                    <span>Ingresar URL</span>
-                  </button>
-
                   {hasValidLogo && (
                     <button
                       type="button"
@@ -240,33 +218,6 @@ export const ConfiguracionView: React.FC<ConfiguracionViewProps> = ({
                   )}
                 </div>
               </div>
-
-              {/* Input desplegable para URL directa */}
-              {showUrlInput && (
-                <div className="mt-4 pt-3 border-t border-[#e1e3e4] flex items-center gap-2">
-                  <input
-                    type="url"
-                    value={customUrl}
-                    onChange={(e) => setCustomUrl(e.target.value)}
-                    placeholder="https://ejemplo.com/mi-logo.png"
-                    className="flex-1 border border-[#e1e3e4] rounded-lg px-3 py-1.5 text-xs text-[#191c1d] focus:border-[#24389c] outline-none"
-                  />
-                  <button
-                    type="button"
-                    onClick={handleApplyUrl}
-                    className="px-3 py-1.5 bg-[#24389c] text-white rounded-lg text-xs font-semibold hover:bg-[#1d2d7c]"
-                  >
-                    Aplicar
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setShowUrlInput(false)}
-                    className="px-2 py-1.5 text-xs text-[#757684] hover:text-[#191c1d]"
-                  >
-                    Cancelar
-                  </button>
-                </div>
-              )}
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5 pt-2">
