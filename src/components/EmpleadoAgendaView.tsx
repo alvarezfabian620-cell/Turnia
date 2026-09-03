@@ -20,7 +20,7 @@ export const EmpleadoAgendaView: React.FC<EmpleadoAgendaViewProps> = ({
   onUpdateReservationStatus,
 }) => {
   const [activeDate, setActiveDate] = useState<Date>(() => new Date());
-  const [calendarMode, setCalendarMode] = useState<'mes' | 'semana' | 'dia'>('semana');
+  const [calendarMode, setCalendarMode] = useState<'mes' | 'semana' | 'dia'>('mes');
 
   const monthNames = [
     'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
@@ -34,11 +34,15 @@ export const EmpleadoAgendaView: React.FC<EmpleadoAgendaViewProps> = ({
     '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00'
   ];
 
-  // Filter only employee's reservations
+  // Filter only employee's reservations strictly
   const myReservations = useMemo(() => {
+    if (!currentUser) return [];
+    const normalizedUserName = currentUser.name.trim().toLowerCase();
+    const profId = professional?.id || currentUser.professionalId;
+
     return reservations.filter((r) => {
-      if (professional?.id && r.professionalId === professional.id) return true;
-      if (r.professionalName.toLowerCase() === currentUser.name.toLowerCase()) return true;
+      if (profId && r.professionalId === profId) return true;
+      if (r.professionalName && r.professionalName.trim().toLowerCase() === normalizedUserName) return true;
       return false;
     });
   }, [reservations, professional, currentUser]);
@@ -69,6 +73,69 @@ export const EmpleadoAgendaView: React.FC<EmpleadoAgendaViewProps> = ({
     return `${y}-${m}-${day}`;
   };
 
+  // Month grid calculation
+  const monthGridDays = useMemo(() => {
+    const year = activeDate.getFullYear();
+    const month = activeDate.getMonth();
+    const today = new Date();
+
+    const firstDay = new Date(year, month, 1);
+    const firstDayJs = firstDay.getDay();
+    const paddingLeft = firstDayJs === 0 ? 6 : firstDayJs - 1; // days before Monday
+    const totalDaysInMonth = new Date(year, month + 1, 0).getDate();
+
+    const days = [];
+
+    // Left padding
+    for (let i = paddingLeft; i > 0; i--) {
+      const d = new Date(year, month, 1 - i);
+      const mStr = String(d.getMonth() + 1).padStart(2, '0');
+      const dStr = String(d.getDate()).padStart(2, '0');
+      days.push({
+        dateNum: d.getDate(),
+        fullDate: `${d.getFullYear()}-${mStr}-${dStr}`,
+        isCurrentMonth: false,
+        isToday: false,
+      });
+    }
+
+    // Current month days
+    for (let i = 1; i <= totalDaysInMonth; i++) {
+      const d = new Date(year, month, i);
+      const isToday =
+        d.getFullYear() === today.getFullYear() &&
+        d.getMonth() === today.getMonth() &&
+        d.getDate() === today.getDate();
+      const mStr = String(month + 1).padStart(2, '0');
+      const dStr = String(i).padStart(2, '0');
+
+      days.push({
+        dateNum: i,
+        fullDate: `${year}-${mStr}-${dStr}`,
+        isCurrentMonth: true,
+        isToday,
+      });
+    }
+
+    // Right padding
+    const remaining = 7 - (days.length % 7);
+    if (remaining < 7) {
+      for (let i = 1; i <= remaining; i++) {
+        const d = new Date(year, month + 1, i);
+        const mStr = String(d.getMonth() + 1).padStart(2, '0');
+        const dStr = String(d.getDate()).padStart(2, '0');
+        days.push({
+          dateNum: d.getDate(),
+          fullDate: `${d.getFullYear()}-${mStr}-${dStr}`,
+          isCurrentMonth: false,
+          isToday: false,
+        });
+      }
+    }
+
+    return days;
+  }, [activeDate]);
+
   // Week days calculation
   const weekDays = useMemo(() => {
     const startOfWeek = new Date(activeDate);
@@ -90,6 +157,10 @@ export const EmpleadoAgendaView: React.FC<EmpleadoAgendaViewProps> = ({
     }
     return days;
   }, [activeDate]);
+
+  const getEventsForDate = (dateStr: string) => {
+    return myReservations.filter((r) => r.date === dateStr);
+  };
 
   return (
     <div className="space-y-6">
@@ -125,7 +196,7 @@ export const EmpleadoAgendaView: React.FC<EmpleadoAgendaViewProps> = ({
           <button
             onClick={() =>
               onOpenNewBooking({
-                professionalId: professional?.id || '',
+                professionalId: professional?.id || currentUser.professionalId || '',
                 professionalName: currentUser.name,
               })
             }
@@ -171,7 +242,102 @@ export const EmpleadoAgendaView: React.FC<EmpleadoAgendaViewProps> = ({
         </div>
       </div>
 
-      {/* Week Matrix View */}
+      {/* 1. MONTH VIEW (Full Month Grid) */}
+      {calendarMode === 'mes' && (
+        <div className="bg-white border border-[#e1e3e4] rounded-2xl overflow-hidden shadow-2xs">
+          {/* Day Names Header */}
+          <div className="grid grid-cols-7 border-b border-[#e1e3e4] bg-[#f8f9fa]">
+            {dayNamesShort.map((day) => (
+              <div
+                key={day}
+                className="py-3 px-2 text-center text-xs font-bold text-[#757684] border-r border-[#e1e3e4] last:border-r-0 uppercase tracking-wider"
+              >
+                {day}
+              </div>
+            ))}
+          </div>
+
+          {/* Month Cells Grid */}
+          <div className="grid grid-cols-7 divide-x divide-y divide-[#e1e3e4]">
+            {monthGridDays.map((day, idx) => {
+              const dayEvents = getEventsForDate(day.fullDate);
+              const isRowAlt = Math.floor(idx / 7) % 2 === 1;
+
+              return (
+                <div
+                  key={day.fullDate + idx}
+                  onClick={() =>
+                    onOpenNewBooking({
+                      date: day.fullDate,
+                      time: '09:00',
+                      professionalId: professional?.id || currentUser.professionalId || '',
+                      professionalName: currentUser.name,
+                    })
+                  }
+                  className={`min-h-[110px] p-2 transition-colors cursor-pointer group flex flex-col justify-between ${
+                    !day.isCurrentMonth
+                      ? 'bg-[#fafafa] text-[#c5c5d4] opacity-50'
+                      : isRowAlt
+                      ? 'bg-[#edf0f4]/40 hover:bg-[#dee0ff]/20'
+                      : 'bg-white hover:bg-[#dee0ff]/20'
+                  } ${day.isToday ? 'ring-2 ring-inset ring-[#24389c]' : ''}`}
+                >
+                  <div className="flex justify-between items-center mb-1">
+                    <span
+                      className={`text-xs font-bold inline-flex items-center justify-center w-6 h-6 rounded-full ${
+                        day.isToday
+                          ? 'bg-[#24389c] text-white shadow-2xs'
+                          : day.isCurrentMonth
+                          ? 'text-[#191c1d]'
+                          : 'text-[#a0a1ab]'
+                      }`}
+                    >
+                      {day.dateNum}
+                    </span>
+                    {dayEvents.length > 0 && (
+                      <span className="text-[10px] font-bold text-[#24389c] bg-[#dee0ff] px-1.5 py-0.5 rounded-md">
+                        {dayEvents.length} {dayEvents.length === 1 ? 'cita' : 'citas'}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Day Events Stack */}
+                  <div className="space-y-1 overflow-hidden">
+                    {dayEvents.slice(0, 3).map((res) => (
+                      <div
+                        key={res.id}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onSelectReservation(res);
+                        }}
+                        className={`px-1.5 py-0.5 rounded text-[10px] font-medium truncate border-l-2 ${
+                          res.status === 'completada'
+                            ? 'bg-[#e1f5ec] text-[#047857] border-l-[#10b981]'
+                            : res.status === 'en_curso'
+                            ? 'bg-[#e0e7ff] text-[#4338ca] border-l-[#6366f1]'
+                            : res.status === 'cancelada'
+                            ? 'bg-[#ffdad6] text-[#ba1a1a] border-l-[#ba1a1a]'
+                            : 'bg-[#dee0ff] text-[#24389c] border-l-[#24389c]'
+                        }`}
+                        title={`${res.time} - ${res.clientName} (${res.serviceName})`}
+                      >
+                        <span className="font-bold">{res.time}</span> {res.clientName}
+                      </div>
+                    ))}
+                    {dayEvents.length > 3 && (
+                      <div className="text-[9px] text-[#757684] font-semibold pl-1">
+                        +{dayEvents.length - 3} más
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* 2. WEEK MATRIX VIEW */}
       {calendarMode === 'semana' && (
         <div className="bg-white border border-[#e1e3e4] rounded-2xl overflow-hidden shadow-2xs">
           <div className="grid grid-cols-8 border-b border-[#e1e3e4] bg-[#f8f9fa] text-center text-xs font-bold text-[#757684]">
@@ -241,7 +407,7 @@ export const EmpleadoAgendaView: React.FC<EmpleadoAgendaViewProps> = ({
         </div>
       )}
 
-      {/* Day View */}
+      {/* 3. DAY VIEW */}
       {calendarMode === 'dia' && (
         <div className="bg-white border border-[#e1e3e4] rounded-2xl p-6 shadow-2xs space-y-4">
           <div className="flex items-center justify-between border-b border-[#e1e3e4] pb-4">
@@ -294,24 +460,6 @@ export const EmpleadoAgendaView: React.FC<EmpleadoAgendaViewProps> = ({
                   </div>
                 ))
             )}
-          </div>
-        </div>
-      )}
-
-      {/* Month View Simple Matrix */}
-      {calendarMode === 'mes' && (
-        <div className="bg-white border border-[#e1e3e4] rounded-2xl p-6 shadow-2xs">
-          <div className="text-center py-6 text-sm text-[#454652]">
-            Total de citas en {monthNames[activeDate.getMonth()]}:{' '}
-            <strong className="text-[#24389c] text-lg font-bold">
-              {
-                myReservations.filter((r) => {
-                  const m = String(activeDate.getMonth() + 1).padStart(2, '0');
-                  return r.date.startsWith(`${activeDate.getFullYear()}-${m}`);
-                }).length
-              }
-            </strong>{' '}
-            citas asignadas.
           </div>
         </div>
       )}
