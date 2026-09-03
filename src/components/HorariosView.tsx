@@ -4,8 +4,8 @@ import { DaySchedule, TimeBlock } from '../types';
 interface HorariosViewProps {
   schedule: DaySchedule[];
   onSaveSchedule: (updated: DaySchedule[]) => void;
-  timeZone: string;
-  onChangeTimeZone: (tz: string) => void;
+  timeZone?: string;
+  onChangeTimeZone?: (tz: string) => void;
 }
 
 interface FormattedDayRow {
@@ -22,13 +22,9 @@ interface FormattedDayRow {
 export const HorariosView: React.FC<HorariosViewProps> = ({
   schedule: initialSchedule,
   onSaveSchedule,
-  timeZone,
-  onChangeTimeZone,
 }) => {
   const [dayRows, setDayRows] = useState<FormattedDayRow[]>([]);
   const [isSaved, setIsSaved] = useState(false);
-  const [bufferTime, setBufferTime] = useState('15 min');
-  const [advanceDays, setAdvanceDays] = useState('30 días');
 
   // Convert DaySchedule[] into clean structured FormattedDayRow[]
   useEffect(() => {
@@ -153,7 +149,7 @@ export const HorariosView: React.FC<HorariosViewProps> = ({
   };
 
   return (
-    <div className="space-y-6 max-w-5xl">
+    <div className="space-y-6 w-full">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -178,8 +174,8 @@ export const HorariosView: React.FC<HorariosViewProps> = ({
         </div>
       </div>
 
-      {/* Main Schedule Matrix Table */}
-      <div className="bg-white border border-[#e1e3e4] rounded-2xl overflow-hidden shadow-2xs">
+      {/* Main Schedule Matrix Table with Full Width */}
+      <div className="bg-white border border-[#e1e3e4] rounded-2xl overflow-hidden shadow-2xs w-full">
         {/* Table Toolbar */}
         <div className="px-6 py-3.5 bg-[#f8f9fa] border-b border-[#e1e3e4] flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <span className="font-bold text-xs text-[#454652] uppercase tracking-wider">
@@ -195,15 +191,15 @@ export const HorariosView: React.FC<HorariosViewProps> = ({
           </button>
         </div>
 
-        {/* Schedule Table Header */}
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
+        {/* Schedule Table */}
+        <div className="overflow-x-auto w-full">
+          <table className="w-full text-left border-collapse min-w-[760px]">
             <thead>
-              <tr className="border-b border-[#e1e3e4] bg-[#f8f9fa]/50 text-xs font-bold text-[#757684] uppercase tracking-wider">
-                <th className="py-3 px-6 w-48">Día</th>
-                <th className="py-3 px-6">Horario de Atención</th>
-                <th className="py-3 px-6">Pausa / Almuerzo (Opcional)</th>
-                <th className="py-3 px-6 text-right">Estado</th>
+              <tr className="border-b border-[#e1e3e4] bg-[#f8f9fa]/60 text-xs font-bold text-[#757684] uppercase tracking-wider">
+                <th className="py-3.5 px-6 w-48">Día</th>
+                <th className="py-3.5 px-6 w-72">Horario de Atención</th>
+                <th className="py-3.5 px-6">Pausa / Almuerzo (Opcional)</th>
+                <th className="py-3.5 px-6 text-right w-36">Estado</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#e1e3e4] text-sm">
@@ -316,12 +312,12 @@ export const HorariosView: React.FC<HorariosViewProps> = ({
                     {/* Col 4: Status Badge */}
                     <td className="py-4 px-6 text-right whitespace-nowrap">
                       {row.active ? (
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-[#e1f5ec] text-[#047857]">
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-[#e1f5ec] text-[#047857]">
                           <span className="w-1.5 h-1.5 rounded-full bg-[#10b981]"></span>
                           <span>Abierto</span>
                         </span>
                       ) : (
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-[#ffdad6]/60 text-[#ba1a1a]">
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-[#ffdad6]/60 text-[#ba1a1a]">
                           <span className="w-1.5 h-1.5 rounded-full bg-[#ba1a1a]"></span>
                           <span>Cerrado</span>
                         </span>
@@ -332,64 +328,6 @@ export const HorariosView: React.FC<HorariosViewProps> = ({
               })}
             </tbody>
           </table>
-        </div>
-      </div>
-
-      {/* Global Configuration Card */}
-      <div className="bg-white border border-[#e1e3e4] rounded-2xl p-6 shadow-2xs">
-        <h3 className="font-bold text-base text-[#191c1d] mb-4 flex items-center gap-2">
-          <span className="material-symbols-outlined text-[20px] text-[#24389c]">tune</span>
-          <span>Parámetros generales de agendamiento</span>
-        </h3>
-
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
-          <div>
-            <label className="block text-xs font-semibold text-[#454652] mb-1.5">
-              Zona Horaria
-            </label>
-            <select
-              value={timeZone}
-              onChange={(e) => onChangeTimeZone(e.target.value)}
-              className="w-full border border-[#e1e3e4] rounded-xl px-3 py-2 text-xs font-medium text-[#191c1d] bg-white focus:border-[#24389c] focus:ring-2 focus:ring-[#24389c]/15 outline-none cursor-pointer"
-            >
-              <option value="UTC-5 (Bogotá, Lima, Quito)">UTC-5 (Bogotá, Lima, Quito)</option>
-              <option value="UTC-3 (Buenos Aires, Santiago)">UTC-3 (Buenos Aires, Santiago)</option>
-              <option value="UTC-6 (Ciudad de México)">UTC-6 (Ciudad de México)</option>
-              <option value="UTC+1 (Madrid, Barcelona)">UTC+1 (Madrid, Barcelona)</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-xs font-semibold text-[#454652] mb-1.5">
-              Margen entre citas
-            </label>
-            <select
-              value={bufferTime}
-              onChange={(e) => setBufferTime(e.target.value)}
-              className="w-full border border-[#e1e3e4] rounded-xl px-3 py-2 text-xs font-medium text-[#191c1d] bg-white focus:border-[#24389c] focus:ring-2 focus:ring-[#24389c]/15 outline-none cursor-pointer"
-            >
-              <option value="0 min">Sin margen (0 min)</option>
-              <option value="10 min">10 minutos</option>
-              <option value="15 min">15 minutos (Recomendado)</option>
-              <option value="30 min">30 minutos</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-xs font-semibold text-[#454652] mb-1.5">
-              Antelación máxima
-            </label>
-            <select
-              value={advanceDays}
-              onChange={(e) => setAdvanceDays(e.target.value)}
-              className="w-full border border-[#e1e3e4] rounded-xl px-3 py-2 text-xs font-medium text-[#191c1d] bg-white focus:border-[#24389c] focus:ring-2 focus:ring-[#24389c]/15 outline-none cursor-pointer"
-            >
-              <option value="15 días">15 días de anticipación</option>
-              <option value="30 días">30 días (1 mes)</option>
-              <option value="60 días">60 días (2 meses)</option>
-              <option value="90 días">90 días (3 meses)</option>
-            </select>
-          </div>
         </div>
       </div>
     </div>
