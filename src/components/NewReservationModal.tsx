@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import confetti from 'canvas-confetti';
-import { Reservation, Professional, ServiceItem, DaySchedule } from '../types';
+import { Reservation, Professional, ServiceItem, DaySchedule, AuthUser, ClientItem } from '../types';
 
 interface NewReservationModalProps {
   isOpen: boolean;
@@ -10,6 +10,8 @@ interface NewReservationModalProps {
   services: ServiceItem[];
   schedules?: DaySchedule[];
   initialData?: Partial<Reservation>;
+  currentUser?: AuthUser | null;
+  clients?: ClientItem[];
 }
 
 export const NewReservationModal: React.FC<NewReservationModalProps> = ({
@@ -20,7 +22,11 @@ export const NewReservationModal: React.FC<NewReservationModalProps> = ({
   services,
   schedules = [],
   initialData,
+  currentUser,
+  clients = [],
 }) => {
+  const isClientRole = currentUser?.role === 'cliente';
+
   const getTodayStr = () => {
     const d = new Date();
     const year = d.getFullYear();
@@ -28,6 +34,7 @@ export const NewReservationModal: React.FC<NewReservationModalProps> = ({
     const day = String(d.getDate()).padStart(2, '0');
     return `${year}-${month}-${day}`;
   };
+
   const getCurrentTimeStr = () => {
     const now = new Date();
     return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
@@ -47,7 +54,7 @@ export const NewReservationModal: React.FC<NewReservationModalProps> = ({
   const [professionalId, setProfessionalId] = useState('');
   const [date, setDate] = useState(getTodayStr());
   const [time, setTime] = useState(getSuggestedTime());
-  const [status, setStatus] = useState<Reservation['status']>('confirmada');
+  const [status, setStatus] = useState<Reservation['status']>(isClientRole ? 'pendiente' : 'confirmada');
   const [notes, setNotes] = useState('');
 
   const todayStr = getTodayStr();
@@ -133,21 +140,36 @@ export const NewReservationModal: React.FC<NewReservationModalProps> = ({
   const isFormInvalid = isPastInvalid || !scheduleValidation.isValid || !clientName.trim();
 
   useEffect(() => {
+    // If client user is logged in, auto-fill profile data
+    if (isClientRole && currentUser) {
+      const matchingClient = clients.find(
+        (c) =>
+          (currentUser.clientId && c.id === currentUser.clientId) ||
+          (currentUser.email && c.email.toLowerCase() === currentUser.email.toLowerCase()) ||
+          c.name.toLowerCase() === currentUser.name.toLowerCase()
+      );
+      setClientName(currentUser.name || '');
+      setClientPhone(matchingClient?.phone || initialData?.clientPhone || '+57 300 111 2233');
+      setStatus('pendiente');
+    }
+
     if (initialData) {
-      if (initialData.clientName) setClientName(initialData.clientName);
-      if (initialData.clientPhone) setClientPhone(initialData.clientPhone);
+      if (initialData.clientName && !isClientRole) setClientName(initialData.clientName);
+      if (initialData.clientPhone && !isClientRole) setClientPhone(initialData.clientPhone);
       if (initialData.serviceId) setServiceId(initialData.serviceId);
       if (initialData.professionalId) setProfessionalId(initialData.professionalId);
       if (initialData.date) setDate(initialData.date);
       if (initialData.time) setTime(initialData.time);
       if (initialData.notes) setNotes(initialData.notes);
+      if (initialData.status && !isClientRole) setStatus(initialData.status);
     } else {
       setDate(getTodayStr());
       setTime(getSuggestedTime());
       if (services.length > 0 && !serviceId) setServiceId(services[0].id);
       if (professionals.length > 0 && !professionalId) setProfessionalId(professionals[0].id);
+      if (isClientRole) setStatus('pendiente');
     }
-  }, [initialData, services, professionals]);
+  }, [initialData, services, professionals, currentUser, isClientRole, clients]);
 
   if (!isOpen) return null;
 
@@ -165,6 +187,7 @@ export const NewReservationModal: React.FC<NewReservationModalProps> = ({
     onSave({
       clientName: clientName.trim(),
       clientPhone: clientPhone.trim() || '+57 300 000 0000',
+      clientEmail: currentUser?.email || initialData?.clientEmail || '',
       serviceId: selectedService ? selectedService.id : 'serv-1',
       serviceName: selectedService ? selectedService.name : 'Servicio General',
       professionalId: selectedProfessional ? selectedProfessional.id : 'prof-1',
@@ -174,7 +197,7 @@ export const NewReservationModal: React.FC<NewReservationModalProps> = ({
       endTime,
       durationMinutes: duration,
       price: selectedService ? selectedService.price : 0,
-      status,
+      status: isClientRole ? 'pendiente' : status,
       notes: notes.trim(),
     });
 
@@ -199,11 +222,19 @@ export const NewReservationModal: React.FC<NewReservationModalProps> = ({
         <div className="flex justify-between items-center pb-4 border-b border-[#e1e3e4] mb-5">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-[#dee0ff] text-[#24389c] rounded-xl flex items-center justify-center shrink-0">
-              <span className="material-symbols-outlined text-[22px]">calendar_add_on</span>
+              <span className="material-symbols-outlined text-[22px]">
+                {isClientRole ? 'event' : 'calendar_add_on'}
+              </span>
             </div>
             <div>
-              <h3 className="font-bold text-lg text-[#191c1d] leading-snug">Nueva Reserva</h3>
-              <p className="text-xs text-[#757684]">Ingresa los datos para agendar la cita</p>
+              <h3 className="font-bold text-lg text-[#191c1d] leading-snug">
+                {isClientRole ? 'Reservar Cita' : 'Nueva Reserva'}
+              </h3>
+              <p className="text-xs text-[#757684]">
+                {isClientRole
+                  ? 'Elige el servicio, profesional y horario de tu preferencia'
+                  : 'Ingresa los datos para agendar la cita'}
+              </p>
             </div>
           </div>
           <button
@@ -219,9 +250,16 @@ export const NewReservationModal: React.FC<NewReservationModalProps> = ({
           {/* Section 1: Client Info */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
             <div>
-              <label className="block text-xs font-semibold text-[#454652] mb-1.5">
-                Nombre del Cliente <span className="text-[#ba1a1a]">*</span>
-              </label>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="block text-xs font-semibold text-[#454652]">
+                  Nombre del Cliente <span className="text-[#ba1a1a]">*</span>
+                </label>
+                {isClientRole && (
+                  <span className="text-[10px] text-[#24389c] bg-[#dee0ff] px-2 py-0.5 rounded-md font-semibold">
+                    Tu cuenta
+                  </span>
+                )}
+              </div>
               <input
                 type="text"
                 value={clientName}
@@ -250,16 +288,17 @@ export const NewReservationModal: React.FC<NewReservationModalProps> = ({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
             <div>
               <label className="block text-xs font-semibold text-[#454652] mb-1.5">
-                Servicio
+                Servicio <span className="text-[#ba1a1a]">*</span>
               </label>
               <select
                 value={serviceId}
                 onChange={(e) => setServiceId(e.target.value)}
-                className="w-full border border-[#e1e3e4] rounded-xl px-3.5 py-2.5 text-sm text-[#191c1d] bg-white focus:border-[#24389c] focus:ring-2 focus:ring-[#24389c]/15 outline-none font-medium cursor-pointer transition-all"
+                className="w-full border border-[#e1e3e4] rounded-xl px-3.5 py-2.5 text-sm text-[#191c1d] bg-white focus:border-[#24389c] focus:ring-2 focus:ring-[#24389c]/15 outline-none font-medium cursor-pointer transition-all truncate"
+                required
               >
-                {services.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.name} (${Number(s.price || 0).toLocaleString('es-CO')})
+                {services.map((srv) => (
+                  <option key={srv.id} value={srv.id}>
+                    {srv.name} (${Number(srv.price).toLocaleString('es-CO')})
                   </option>
                 ))}
               </select>
@@ -272,32 +311,32 @@ export const NewReservationModal: React.FC<NewReservationModalProps> = ({
               <select
                 value={professionalId}
                 onChange={(e) => setProfessionalId(e.target.value)}
-                className="w-full border border-[#e1e3e4] rounded-xl px-3.5 py-2.5 text-sm text-[#191c1d] bg-white focus:border-[#24389c] focus:ring-2 focus:ring-[#24389c]/15 outline-none font-medium cursor-pointer transition-all"
+                className="w-full border border-[#e1e3e4] rounded-xl px-3.5 py-2.5 text-sm text-[#191c1d] bg-white focus:border-[#24389c] focus:ring-2 focus:ring-[#24389c]/15 outline-none font-medium cursor-pointer transition-all truncate"
               >
-                {professionals.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name} ({p.role})
+                {professionals.map((prof) => (
+                  <option key={prof.id} value={prof.id}>
+                    {prof.name} ({prof.role})
                   </option>
                 ))}
               </select>
             </div>
           </div>
 
-          {/* Section 3: Date & Time in 2 balanced columns with validation */}
+          {/* Section 3: Date & Time */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
             <div>
               <label className="block text-xs font-semibold text-[#454652] mb-1.5">
-                Fecha de la cita
+                Fecha de la cita <span className="text-[#ba1a1a]">*</span>
               </label>
               <input
                 type="date"
                 min={todayStr}
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
-                className={`w-full border rounded-xl px-3.5 py-2.5 text-sm text-[#191c1d] bg-white outline-none font-medium transition-all ${
-                  isDateInPast || !scheduleValidation.isValid
-                    ? 'border-[#ba1a1a] focus:ring-2 focus:ring-[#ba1a1a]/20'
-                    : 'border-[#e1e3e4] focus:border-[#24389c] focus:ring-2 focus:ring-[#24389c]/15'
+                className={`w-full border rounded-xl px-3.5 py-2.5 text-sm outline-none transition-all cursor-pointer ${
+                  isDateInPast
+                    ? 'border-[#ba1a1a] bg-[#ffdad6]/20 text-[#ba1a1a] focus:ring-2 focus:ring-[#ba1a1a]/20'
+                    : 'border-[#e1e3e4] text-[#191c1d] bg-white focus:border-[#24389c] focus:ring-2 focus:ring-[#24389c]/15'
                 }`}
                 required
               />
@@ -305,16 +344,16 @@ export const NewReservationModal: React.FC<NewReservationModalProps> = ({
 
             <div>
               <label className="block text-xs font-semibold text-[#454652] mb-1.5">
-                Hora de inicio
+                Hora de inicio <span className="text-[#ba1a1a]">*</span>
               </label>
               <input
                 type="time"
                 value={time}
                 onChange={(e) => setTime(e.target.value)}
-                className={`w-full border rounded-xl px-3.5 py-2.5 text-sm font-mono text-[#191c1d] bg-white outline-none font-bold transition-all ${
-                  isTimeInPast || !scheduleValidation.isValid
-                    ? 'border-[#ba1a1a] text-[#ba1a1a] focus:ring-2 focus:ring-[#ba1a1a]/20'
-                    : 'border-[#e1e3e4] focus:border-[#24389c] focus:ring-2 focus:ring-[#24389c]/15'
+                className={`w-full border rounded-xl px-3.5 py-2.5 text-sm outline-none transition-all cursor-pointer font-mono ${
+                  isTimeInPast || (!scheduleValidation.isValid && time)
+                    ? 'border-[#ba1a1a] bg-[#ffdad6]/20 text-[#ba1a1a] focus:ring-2 focus:ring-[#ba1a1a]/20'
+                    : 'border-[#e1e3e4] text-[#191c1d] bg-white focus:border-[#24389c] focus:ring-2 focus:ring-[#24389c]/15'
                 }`}
                 required
               />
@@ -340,21 +379,28 @@ export const NewReservationModal: React.FC<NewReservationModalProps> = ({
             </div>
           )}
 
-          {/* Section 4: Estado */}
-          <div>
-            <label className="block text-xs font-semibold text-[#454652] mb-1.5">
-              Estado inicial de la reserva
-            </label>
-            <select
-              value={status}
-              onChange={(e) => setStatus(e.target.value as Reservation['status'])}
-              className="w-full border border-[#e1e3e4] rounded-xl px-3.5 py-2.5 text-sm text-[#191c1d] bg-white focus:border-[#24389c] focus:ring-2 focus:ring-[#24389c]/15 outline-none font-medium cursor-pointer transition-all"
-            >
-              <option value="confirmada">Confirmada</option>
-              <option value="pendiente">Pendiente</option>
-              <option value="en_curso">En curso</option>
-            </select>
-          </div>
+          {/* Section 4: Estado (Solo visible para Administradores y Empleados) */}
+          {!isClientRole ? (
+            <div>
+              <label className="block text-xs font-semibold text-[#454652] mb-1.5">
+                Estado inicial de la reserva
+              </label>
+              <select
+                value={status}
+                onChange={(e) => setStatus(e.target.value as Reservation['status'])}
+                className="w-full border border-[#e1e3e4] rounded-xl px-3.5 py-2.5 text-sm text-[#191c1d] bg-white focus:border-[#24389c] focus:ring-2 focus:ring-[#24389c]/15 outline-none font-medium cursor-pointer transition-all"
+              >
+                <option value="confirmada">Confirmada</option>
+                <option value="pendiente">Pendiente</option>
+                <option value="en_curso">En curso</option>
+              </select>
+            </div>
+          ) : (
+            <div className="p-3 bg-[#dee0ff]/40 border border-[#bac3ff] rounded-xl flex items-center gap-2 text-xs text-[#24389c] font-medium">
+              <span className="material-symbols-outlined text-[18px]">info</span>
+              <span>Tu solicitud quedará en estado <strong>Pendiente</strong> hasta ser confirmada por el equipo.</span>
+            </div>
+          )}
 
           {/* Section 5: Notes */}
           <div>
@@ -365,7 +411,7 @@ export const NewReservationModal: React.FC<NewReservationModalProps> = ({
               rows={2}
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              placeholder="Instrucciones especiales o preferencias del cliente..."
+              placeholder="Instrucciones especiales o preferencias para tu cita..."
               className="w-full border border-[#e1e3e4] rounded-xl px-3.5 py-2.5 text-sm text-[#191c1d] focus:border-[#24389c] focus:ring-2 focus:ring-[#24389c]/15 outline-none transition-all placeholder:text-[#a0a1ab] resize-none"
             />
           </div>
@@ -403,7 +449,7 @@ export const NewReservationModal: React.FC<NewReservationModalProps> = ({
               }`}
             >
               <span className="material-symbols-outlined text-[16px]">check</span>
-              <span>Confirmar reserva</span>
+              <span>{isClientRole ? 'Solicitar Cita' : 'Confirmar reserva'}</span>
             </button>
           </div>
         </form>

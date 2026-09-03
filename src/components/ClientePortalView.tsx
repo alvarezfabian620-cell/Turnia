@@ -61,6 +61,14 @@ export const ClientePortalView: React.FC<ClientePortalViewProps> = ({
             <span className="material-symbols-outlined text-[#24389c] text-[22px]">event_upcoming</span>
             <span>Tus Próximas Citas ({upcomingReservations.length})</span>
           </h3>
+
+          <button
+            onClick={onOpenNewBooking}
+            className="px-4 py-2 bg-[#24389c] hover:bg-[#1d2d7c] text-white rounded-xl text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
+          >
+            <span className="material-symbols-outlined text-[18px]">add_circle</span>
+            <span>Agendar Cita</span>
+          </button>
         </div>
 
         {upcomingReservations.length === 0 ? (
@@ -127,40 +135,6 @@ export const ClientePortalView: React.FC<ClientePortalViewProps> = ({
             ))}
           </div>
         )}
-      </div>
-
-      {/* Services Catalog Explorer */}
-      <div className="bg-white border border-[#e1e3e4] rounded-2xl p-6 shadow-2xs space-y-4">
-        <h3 className="font-bold text-lg text-[#191c1d] flex items-center gap-2">
-          <span className="material-symbols-outlined text-[#24389c] text-[22px]">content_cut</span>
-          <span>Catálogo de Servicios Disponibles</span>
-        </h3>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {services
-            .filter((s) => s.active)
-            .map((service) => (
-              <div
-                key={service.id}
-                className="p-4 border border-[#e1e3e4] rounded-xl bg-white flex flex-col justify-between hover:border-[#bac3ff] hover:shadow-2xs transition-all"
-              >
-                <div>
-                  <span className="text-[10px] font-bold text-[#24389c] bg-[#dee0ff]/60 px-2 py-0.5 rounded-md">
-                    {service.category}
-                  </span>
-                  <h4 className="font-bold text-sm text-[#191c1d] mt-2">{service.name}</h4>
-                  <p className="text-xs text-[#757684] line-clamp-2 mt-1">{service.description}</p>
-                </div>
-
-                <div className="pt-3 mt-3 border-t border-[#f0f1f2] flex items-center justify-between">
-                  <div className="text-xs text-[#757684]">{service.durationMinutes} min</div>
-                  <div className="font-mono font-bold text-sm text-[#24389c]">
-                    ${Number(service.price).toLocaleString('es-CO')}
-                  </div>
-                </div>
-              </div>
-            ))}
-        </div>
       </div>
     </div>
   );

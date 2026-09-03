@@ -47,7 +47,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
     if (role === 'cliente') {
       return [
         { id: 'cliente_portal', label: 'Mi Portal', icon: 'home' },
-        { id: 'servicios', label: 'Catálogo de Servicios', icon: 'content_cut' },
       ];
     }
 

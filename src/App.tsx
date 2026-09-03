@@ -752,6 +752,8 @@ export default function App() {
         services={services}
         schedules={schedule}
         initialData={bookingPrefill}
+        currentUser={authUser}
+        clients={clients}
       />
 
       <ReservationDetailsModal
