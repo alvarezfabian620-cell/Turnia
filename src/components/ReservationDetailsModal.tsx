@@ -185,15 +185,8 @@ export const ReservationDetailsModal: React.FC<ReservationDetailsModalProps> = (
             )}
           </div>
 
-          {/* Right: Close, Cancel Appointment, and Save Actions */}
-          <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-3.5 py-2 border border-[#e1e3e4] rounded-xl text-xs text-[#454652] hover:bg-[#f3f4f5] font-semibold transition-colors cursor-pointer"
-            >
-              Cerrar
-            </button>
+          {/* Right: Cancel Appointment and Save Actions */}
+          <div className="flex items-center gap-2.5 w-full sm:w-auto justify-end">
 
             {reservation.status !== 'cancelada' && (
               <button
