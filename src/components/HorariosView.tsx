@@ -253,7 +253,7 @@ export const HorariosView: React.FC<HorariosViewProps> = ({
                             onChange={(e) =>
                               handleChangeTime(index, 'openTime', e.target.value)
                             }
-                            className="w-24 px-2.5 py-1.5 bg-white border border-[#e1e3e4] rounded-xl font-mono font-bold text-xs text-[#191c1d] focus:border-[#24389c] focus:ring-2 focus:ring-[#24389c]/15 outline-none text-center shadow-2xs transition-all"
+                            className="w-32 px-3 py-1.5 bg-white border border-[#e1e3e4] rounded-xl font-mono font-bold text-xs text-[#191c1d] focus:border-[#24389c] focus:ring-2 focus:ring-[#24389c]/15 outline-none text-center shadow-2xs transition-all"
                           />
                           <span className="text-xs font-semibold text-[#757684]">a</span>
                           <input
@@ -262,7 +262,7 @@ export const HorariosView: React.FC<HorariosViewProps> = ({
                             onChange={(e) =>
                               handleChangeTime(index, 'closeTime', e.target.value)
                             }
-                            className="w-24 px-2.5 py-1.5 bg-white border border-[#e1e3e4] rounded-xl font-mono font-bold text-xs text-[#191c1d] focus:border-[#24389c] focus:ring-2 focus:ring-[#24389c]/15 outline-none text-center shadow-2xs transition-all"
+                            className="w-32 px-3 py-1.5 bg-white border border-[#e1e3e4] rounded-xl font-mono font-bold text-xs text-[#191c1d] focus:border-[#24389c] focus:ring-2 focus:ring-[#24389c]/15 outline-none text-center shadow-2xs transition-all"
                           />
                         </div>
                       ) : (
@@ -287,23 +287,23 @@ export const HorariosView: React.FC<HorariosViewProps> = ({
                           </label>
 
                           {row.hasBreak && (
-                            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-[#ffdcc6]/40 border border-[#ffb784] rounded-xl text-xs animate-in fade-in duration-150">
+                            <div className="inline-flex items-center gap-2 animate-in fade-in duration-150">
                               <input
                                 type="time"
                                 value={row.breakStart}
                                 onChange={(e) =>
                                   handleChangeTime(index, 'breakStart', e.target.value)
                                 }
-                                className="w-20 px-1.5 py-0.5 bg-white border border-[#ffb784] rounded-lg font-mono font-bold text-xs text-[#8f4700] outline-none text-center"
+                                className="w-32 px-3 py-1.5 bg-white border border-[#e1e3e4] rounded-xl font-mono font-bold text-xs text-[#191c1d] focus:border-[#24389c] focus:ring-2 focus:ring-[#24389c]/15 outline-none text-center shadow-2xs transition-all"
                               />
-                              <span className="text-xs font-bold text-[#8f4700]">-</span>
+                              <span className="text-xs font-semibold text-[#757684]">a</span>
                               <input
                                 type="time"
                                 value={row.breakEnd}
                                 onChange={(e) =>
                                   handleChangeTime(index, 'breakEnd', e.target.value)
                                 }
-                                className="w-20 px-1.5 py-0.5 bg-white border border-[#ffb784] rounded-lg font-mono font-bold text-xs text-[#8f4700] outline-none text-center"
+                                className="w-32 px-3 py-1.5 bg-white border border-[#e1e3e4] rounded-xl font-mono font-bold text-xs text-[#191c1d] focus:border-[#24389c] focus:ring-2 focus:ring-[#24389c]/15 outline-none text-center shadow-2xs transition-all"
                               />
                             </div>
                           )}
