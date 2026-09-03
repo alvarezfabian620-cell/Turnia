@@ -63,6 +63,16 @@ reservationsRouter.post('/', async (req: Request, res: Response) => {
   try {
     const pool = getPool();
     const id = req.body.id || `res-${Date.now()}`;
+    const todayStr = new Date().toISOString().split('T')[0];
+    const now = new Date();
+    const nowTimeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+
+    if (req.body.date < todayStr || (req.body.date === todayStr && req.body.time < nowTimeStr)) {
+      return res.status(400).json({
+        error: 'No es posible agendar una reserva en una fecha u hora que ya ha pasado.'
+      });
+    }
+
     const newRes: Reservation = {
       id,
       clientName: req.body.clientName,

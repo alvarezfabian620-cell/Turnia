@@ -19,14 +19,36 @@ export const NewReservationModal: React.FC<NewReservationModalProps> = ({
   services,
   initialData,
 }) => {
+  const getTodayStr = () => new Date().toISOString().split('T')[0];
+  const getCurrentTimeStr = () => {
+    const now = new Date();
+    return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+  };
+
+  const getSuggestedTime = () => {
+    const now = new Date();
+    const currentMins = now.getMinutes();
+    const roundedMins = currentMins < 30 ? 30 : 0;
+    const roundedHour = currentMins < 30 ? now.getHours() : (now.getHours() + 1) % 24;
+    return `${String(roundedHour).padStart(2, '0')}:${String(roundedMins).padStart(2, '0')}`;
+  };
+
   const [clientName, setClientName] = useState('');
   const [clientPhone, setClientPhone] = useState('');
   const [serviceId, setServiceId] = useState('');
   const [professionalId, setProfessionalId] = useState('');
-  const [date, setDate] = useState(() => new Date().toISOString().split('T')[0]);
-  const [time, setTime] = useState('09:00');
+  const [date, setDate] = useState(getTodayStr());
+  const [time, setTime] = useState(getSuggestedTime());
   const [status, setStatus] = useState<Reservation['status']>('confirmada');
   const [notes, setNotes] = useState('');
+
+  const todayStr = getTodayStr();
+  const currentTimeStr = getCurrentTimeStr();
+
+  // Validate if date/time is in the past
+  const isDateInPast = date < todayStr;
+  const isTimeInPast = date === todayStr && time < currentTimeStr;
+  const isPastInvalid = isDateInPast || isTimeInPast;
 
   useEffect(() => {
     if (initialData) {
@@ -38,6 +60,8 @@ export const NewReservationModal: React.FC<NewReservationModalProps> = ({
       if (initialData.time) setTime(initialData.time);
       if (initialData.notes) setNotes(initialData.notes);
     } else {
+      setDate(getTodayStr());
+      setTime(getSuggestedTime());
       if (services.length > 0 && !serviceId) setServiceId(services[0].id);
       if (professionals.length > 0 && !professionalId) setProfessionalId(professionals[0].id);
     }
@@ -51,7 +75,7 @@ export const NewReservationModal: React.FC<NewReservationModalProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!clientName.trim()) return;
+    if (!clientName.trim() || isPastInvalid) return;
 
     // Calculate end time
     const duration = selectedService ? selectedService.durationMinutes : 45;
@@ -182,7 +206,7 @@ export const NewReservationModal: React.FC<NewReservationModalProps> = ({
             </div>
           </div>
 
-          {/* Section 3: Date & Time in 2 balanced columns */}
+          {/* Section 3: Date & Time in 2 balanced columns with MIN DATE validation */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
             <div>
               <label className="block text-xs font-semibold text-[#454652] mb-1.5">
@@ -190,9 +214,14 @@ export const NewReservationModal: React.FC<NewReservationModalProps> = ({
               </label>
               <input
                 type="date"
+                min={todayStr}
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
-                className="w-full border border-[#e1e3e4] rounded-xl px-3.5 py-2.5 text-sm text-[#191c1d] bg-white focus:border-[#24389c] focus:ring-2 focus:ring-[#24389c]/15 outline-none font-medium transition-all"
+                className={`w-full border rounded-xl px-3.5 py-2.5 text-sm text-[#191c1d] bg-white outline-none font-medium transition-all ${
+                  isDateInPast
+                    ? 'border-[#ba1a1a] focus:ring-2 focus:ring-[#ba1a1a]/20'
+                    : 'border-[#e1e3e4] focus:border-[#24389c] focus:ring-2 focus:ring-[#24389c]/15'
+                }`}
                 required
               />
             </div>
@@ -205,11 +234,27 @@ export const NewReservationModal: React.FC<NewReservationModalProps> = ({
                 type="time"
                 value={time}
                 onChange={(e) => setTime(e.target.value)}
-                className="w-full border border-[#e1e3e4] rounded-xl px-3.5 py-2.5 text-sm font-mono text-[#191c1d] bg-white focus:border-[#24389c] focus:ring-2 focus:ring-[#24389c]/15 outline-none font-bold transition-all"
+                className={`w-full border rounded-xl px-3.5 py-2.5 text-sm font-mono text-[#191c1d] bg-white outline-none font-bold transition-all ${
+                  isTimeInPast
+                    ? 'border-[#ba1a1a] text-[#ba1a1a] focus:ring-2 focus:ring-[#ba1a1a]/20'
+                    : 'border-[#e1e3e4] focus:border-[#24389c] focus:ring-2 focus:ring-[#24389c]/15'
+                }`}
                 required
               />
             </div>
           </div>
+
+          {/* REAL-TIME PAST VALIDATION ERROR ALERT */}
+          {isPastInvalid && (
+            <div className="p-3 bg-[#ffdad6]/60 border border-[#ffdad6] rounded-xl flex items-start gap-2 text-xs text-[#ba1a1a] font-semibold animate-in fade-in duration-150">
+              <span className="material-symbols-outlined text-[18px] shrink-0 mt-0.5">error</span>
+              <span>
+                {isDateInPast
+                  ? 'No puedes seleccionar una fecha anterior a hoy.'
+                  : `La hora seleccionada (${time}) ya ha pasado. La hora actual es ${currentTimeStr}. Por favor selecciona un horario posterior.`}
+              </span>
+            </div>
+          )}
 
           {/* Section 4: Estado */}
           <div>
@@ -266,7 +311,12 @@ export const NewReservationModal: React.FC<NewReservationModalProps> = ({
             </button>
             <button
               type="submit"
-              className="h-10 px-5 bg-[#24389c] hover:bg-[#1d2d7c] text-white font-bold rounded-xl text-xs shadow-xs transition-all cursor-pointer flex items-center gap-1.5 active:scale-[0.98]"
+              disabled={isPastInvalid || !clientName.trim()}
+              className={`h-10 px-5 text-white font-bold rounded-xl text-xs shadow-xs transition-all flex items-center gap-1.5 ${
+                isPastInvalid || !clientName.trim()
+                  ? 'bg-[#c5c5d4] cursor-not-allowed opacity-60'
+                  : 'bg-[#24389c] hover:bg-[#1d2d7c] cursor-pointer active:scale-[0.98]'
+              }`}
             >
               <span className="material-symbols-outlined text-[16px]">check</span>
               <span>Confirmar reserva</span>
