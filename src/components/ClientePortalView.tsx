@@ -43,7 +43,7 @@ export const ClientePortalView: React.FC<ClientePortalViewProps> = ({
       <div className="bg-gradient-to-r from-[#24389c] to-[#3f51b5] text-white rounded-3xl p-6 sm:p-8 shadow-md flex flex-col sm:flex-row sm:items-center justify-between gap-6">
         <div className="space-y-2">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-white/15 backdrop-blur-xs rounded-full text-xs font-bold">
-            <span>✨ Portal del Cliente</span>
+            <span>Portal del Cliente</span>
           </div>
           <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">
             ¡Hola, {currentUser.name}!
@@ -161,7 +161,7 @@ export const ClientePortalView: React.FC<ClientePortalViewProps> = ({
                 </div>
 
                 <div className="pt-3 mt-3 border-t border-[#f0f1f2] flex items-center justify-between">
-                  <div className="text-xs text-[#757684]">⏱️ {service.durationMinutes} min</div>
+                  <div className="text-xs text-[#757684]">{service.durationMinutes} min</div>
                   <div className="font-mono font-bold text-sm text-[#24389c]">
                     ${Number(service.price).toLocaleString('es-CO')}
                   </div>

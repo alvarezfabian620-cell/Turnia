@@ -60,16 +60,10 @@ export const EmpleadoDashboardView: React.FC<EmpleadoDashboardViewProps> = ({
           <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-[#24389c] to-[#3f51b5] text-white flex items-center justify-center font-bold text-xl shadow-xs">
             {currentUser.name.slice(0, 2).toUpperCase()}
           </div>
-          <div>
-            <div className="flex items-center gap-2.5">
+            <div>
               <h2 className="text-2xl font-bold text-[#191c1d] tracking-tight">
-                ¡Hola, {currentUser.name}! 👋
+                ¡Hola, {currentUser.name}!
               </h2>
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-[#dee0ff] text-[#24389c]">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#24389c]" />
-                <span>Panel Profesional</span>
-              </span>
-            </div>
             <p className="text-[#454652] text-xs sm:text-sm mt-0.5">
               {professional?.role || 'Especialista'} • Tienes{' '}
               <strong className="text-[#191c1d]">{todayReservations.length} citas programadas para hoy</strong>.
@@ -170,7 +164,7 @@ export const EmpleadoDashboardView: React.FC<EmpleadoDashboardViewProps> = ({
               </h3>
               {nextAppointment && (
                 <span className="text-xs font-mono font-bold text-[#24389c] bg-[#dee0ff]/60 px-2.5 py-1 rounded-lg">
-                  🕒 {nextAppointment.time}
+                  {nextAppointment.time}
                 </span>
               )}
             </div>
