@@ -1,18 +1,22 @@
 import React from 'react';
-import { BusinessConfig } from '../types';
+import { BusinessConfig, AuthUser } from '../types';
 
 interface AdminProfileModalProps {
   isOpen: boolean;
   onClose: () => void;
   onNavigateToSettings: () => void;
+  onLogout: () => void;
   config?: BusinessConfig;
+  user?: AuthUser | null;
 }
 
 export const AdminProfileModal: React.FC<AdminProfileModalProps> = ({
   isOpen,
   onClose,
   onNavigateToSettings,
+  onLogout,
   config,
+  user,
 }) => {
   if (!isOpen) return null;
 
@@ -30,13 +34,13 @@ export const AdminProfileModal: React.FC<AdminProfileModalProps> = ({
         </div>
 
         <div className="flex flex-col items-center text-center py-3">
-          <div className="w-20 h-20 rounded-full bg-[#24389c] text-white font-bold text-2xl flex items-center justify-center border-2 border-[#24389c] p-0.5 shadow-sm mb-3">
-            {config?.name ? config.name.slice(0, 2).toUpperCase() : 'AD'}
+          <div className="w-20 h-20 rounded-full bg-gradient-to-tr from-[#24389c] to-[#3f51b5] text-white font-bold text-2xl flex items-center justify-center border-2 border-white shadow-md mb-3">
+            {user?.name ? user.name.slice(0, 2).toUpperCase() : 'AD'}
           </div>
           <h4 className="font-bold text-lg text-[#191c1d]">
-            {config?.name || 'Administrador Principal'}
+            {user?.name || config?.name || 'Administrador Turnia'}
           </h4>
-          <p className="text-xs text-[#757684]">{config?.email || 'admin@turnia.app'}</p>
+          <p className="text-xs text-[#757684]">{user?.email || 'admin@turnia.com'}</p>
           <span className="mt-2 inline-flex items-center px-3 py-0.5 rounded-full text-xs font-semibold bg-[#dee0ff] text-[#24389c]">
             Super Administrador · TURNIA
           </span>
@@ -45,7 +49,7 @@ export const AdminProfileModal: React.FC<AdminProfileModalProps> = ({
         <div className="space-y-2.5 py-4 border-y border-[#f3f4f5] text-xs">
           <div className="flex justify-between py-1">
             <span className="text-[#757684]">Rol de acceso:</span>
-            <span className="font-semibold text-[#191c1d]">Propietario / Gerencia</span>
+            <span className="font-semibold text-[#191c1d] uppercase">{user?.role || 'Admin'}</span>
           </div>
           <div className="flex justify-between py-1">
             <span className="text-[#757684]">Estado de la cuenta:</span>
@@ -54,8 +58,8 @@ export const AdminProfileModal: React.FC<AdminProfileModalProps> = ({
             </span>
           </div>
           <div className="flex justify-between py-1">
-            <span className="text-[#757684]">Categoría de negocio:</span>
-            <span className="font-semibold text-[#24389c]">{config?.category || 'SaaS'}</span>
+            <span className="text-[#757684]">Negocio vinculado:</span>
+            <span className="font-semibold text-[#24389c]">{config?.name || 'Turnia SaaS'}</span>
           </div>
           <div className="flex justify-between py-1">
             <span className="text-[#757684]">Zona Horaria:</span>
@@ -69,16 +73,21 @@ export const AdminProfileModal: React.FC<AdminProfileModalProps> = ({
               onClose();
               onNavigateToSettings();
             }}
-            className="w-full py-2 bg-[#24389c] hover:bg-[#1d2d7c] text-white rounded-lg text-xs font-semibold transition-colors flex items-center justify-center gap-1.5"
+            className="w-full py-2 bg-[#24389c] hover:bg-[#1d2d7c] text-white rounded-lg text-xs font-semibold transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
           >
             <span className="material-symbols-outlined text-[16px]">settings</span>
             <span>Configuración de cuenta</span>
           </button>
+
           <button
-            onClick={onClose}
-            className="w-full py-2 bg-[#f8f9fa] hover:bg-[#edeeef] text-[#454652] rounded-lg text-xs font-medium transition-colors"
+            onClick={() => {
+              onClose();
+              onLogout();
+            }}
+            className="w-full py-2 bg-[#ffdad6]/40 hover:bg-[#ffdad6] text-[#ba1a1a] border border-[#ffdad6] rounded-lg text-xs font-bold transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
           >
-            Cerrar
+            <span className="material-symbols-outlined text-[16px]">logout</span>
+            <span>Cerrar sesión</span>
           </button>
         </div>
       </div>

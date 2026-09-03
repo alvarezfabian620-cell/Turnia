@@ -9,6 +9,7 @@ import { reservationsRouter } from './routes/reservations.js';
 import { schedulesRouter } from './routes/schedules.js';
 import { activitiesRouter } from './routes/activities.js';
 import { reportsRouter } from './routes/reports.js';
+import { authRouter } from './routes/auth.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -18,6 +19,7 @@ app.use(cors());
 app.use(express.json());
 
 // API Routes
+app.use('/api/auth', authRouter);
 app.use('/api/business', businessRouter);
 app.use('/api/services', servicesRouter);
 app.use('/api/professionals', professionalsRouter);

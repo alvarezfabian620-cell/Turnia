@@ -1,4 +1,5 @@
 import mysql from 'mysql2/promise';
+import bcrypt from 'bcryptjs';
 import dotenv from 'dotenv';
 dotenv.config();
 
@@ -93,6 +94,18 @@ export interface ActivityItem {
   timestamp: string;
 }
 
+export interface AuthUser {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  failedAttempts: number;
+  lockUntil?: string | null;
+  resetToken?: string | null;
+  resetTokenExpiry?: string | null;
+  createdAt: string;
+}
+
 const DB_HOST = process.env.DB_HOST || 'localhost';
 const DB_USER = process.env.DB_USER || 'root';
 const DB_PASSWORD = process.env.DB_PASSWORD || '';
@@ -126,6 +139,21 @@ export async function initDatabase(): Promise<mysql.Pool> {
   });
 
   // 3. Create Tables
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS users (
+      id VARCHAR(100) PRIMARY KEY,
+      name VARCHAR(255) NOT NULL,
+      email VARCHAR(255) NOT NULL UNIQUE,
+      password_hash VARCHAR(255) NOT NULL,
+      role VARCHAR(50) NOT NULL DEFAULT 'admin',
+      failed_attempts INT DEFAULT 0,
+      lock_until VARCHAR(50) NULL,
+      reset_token VARCHAR(255) NULL,
+      reset_token_expiry VARCHAR(50) NULL,
+      created_at VARCHAR(50) NOT NULL
+    ) ENGINE=InnoDB;
+  `);
+
   await pool.query(`
     CREATE TABLE IF NOT EXISTS business_config (
       id INT PRIMARY KEY DEFAULT 1,
@@ -222,7 +250,19 @@ export async function initDatabase(): Promise<mysql.Pool> {
     ) ENGINE=InnoDB;
   `);
 
-  // 4. Seed default business config if table is empty
+  // 4. Seed default Admin User if empty
+  const [adminRows]: any = await pool.query('SELECT * FROM users WHERE email = ?', ['admin@turnia.com']);
+  if (adminRows.length === 0) {
+    const defaultPasswordHash = bcrypt.hashSync('Turnia2026!', 10);
+    await pool.query(
+      `INSERT INTO users (id, name, email, password_hash, role, failed_attempts, created_at)
+       VALUES (?, ?, ?, ?, ?, 0, ?)`,
+      ['usr-admin', 'Administrador Turnia', 'admin@turnia.com', defaultPasswordHash, 'admin', new Date().toISOString()]
+    );
+    console.log('👤 Usuario Administrador por defecto creado: admin@turnia.com / Turnia2026!');
+  }
+
+  // 5. Seed default business config if table is empty
   const [businessRows]: any = await pool.query('SELECT * FROM business_config WHERE id = 1');
   if (businessRows.length === 0) {
     await pool.query(`
@@ -231,7 +271,7 @@ export async function initDatabase(): Promise<mysql.Pool> {
     `);
   }
 
-  // 5. Seed default weekly schedules if empty
+  // 6. Seed default weekly schedules if empty
   const [scheduleRows]: any = await pool.query('SELECT * FROM schedules');
   if (scheduleRows.length === 0) {
     const defaultSchedules = [

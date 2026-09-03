@@ -1,5 +1,5 @@
 import React from 'react';
-import { ViewMode, BusinessConfig } from '../types';
+import { ViewMode, BusinessConfig, AuthUser } from '../types';
 import { TurniaLogo } from './TurniaLogo';
 
 interface SidebarProps {
@@ -7,9 +7,11 @@ interface SidebarProps {
   onNavigate: (view: ViewMode) => void;
   pendingCount?: number;
   onOpenProfile: () => void;
+  onLogout?: () => void;
   isMobileOpen?: boolean;
   onCloseMobile?: () => void;
   businessConfig?: BusinessConfig;
+  user?: AuthUser | null;
 }
 
 interface NavItem {
@@ -24,9 +26,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onNavigate,
   pendingCount = 0,
   onOpenProfile,
+  onLogout,
   isMobileOpen = false,
   onCloseMobile,
   businessConfig,
+  user,
 }) => {
   const navItems: NavItem[] = [
     { id: 'dashboard', label: 'Dashboard', icon: 'dashboard' },
@@ -127,22 +131,39 @@ export const Sidebar: React.FC<SidebarProps> = ({
           })}
         </nav>
 
-        {/* Footer Admin Profile */}
-        <div className="mt-auto pt-4 border-t border-[#e1e3e4]">
+        {/* Footer Admin Profile & Logout */}
+        <div className="mt-auto pt-4 border-t border-[#e1e3e4] flex items-center justify-between gap-2">
           <button
             onClick={onOpenProfile}
-            className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-[#454652] hover:text-[#24389c] hover:bg-[#f3f4f5] transition-colors text-sm text-left group"
+            className="flex-1 flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[#454652] hover:text-[#24389c] hover:bg-[#f3f4f5] transition-colors text-sm text-left group min-w-0"
+            title="Ver perfil de administrador"
           >
             <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-[#24389c] to-[#3f51b5] text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-2xs">
-              A
+              {user?.name ? user.name.slice(0, 2).toUpperCase() : 'AD'}
             </div>
             <div className="flex flex-col min-w-0">
-              <span className="font-semibold text-[#191c1d] group-hover:text-[#24389c] text-sm truncate">
-                {businessConfig?.name || 'Admin Profile'}
+              <span className="font-semibold text-[#191c1d] group-hover:text-[#24389c] text-xs truncate">
+                {user?.name || businessConfig?.name || 'Administrador'}
               </span>
-              <span className="text-[11px] text-[#757684]">Administrador</span>
+              <span className="text-[10px] text-[#757684] truncate">
+                {user?.email || 'admin@turnia.com'}
+              </span>
             </div>
           </button>
+
+          {onLogout && (
+            <button
+              onClick={() => {
+                if (window.confirm('¿Deseas cerrar la sesión actual de Turnia?')) {
+                  onLogout();
+                }
+              }}
+              className="p-2 text-[#757684] hover:text-[#ba1a1a] hover:bg-[#ffdad6]/40 rounded-lg transition-colors shrink-0"
+              title="Cerrar sesión"
+            >
+              <span className="material-symbols-outlined text-[18px]">logout</span>
+            </button>
+          )}
         </div>
       </aside>
     </>

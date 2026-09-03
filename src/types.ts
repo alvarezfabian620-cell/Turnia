@@ -99,3 +99,17 @@ export interface BusinessConfig {
   showPricesPublicly: boolean;
   timeZone: string;
 }
+
+export interface AuthUser {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+}
+
+export interface LoginResponse {
+  token: string;
+  user: AuthUser;
+  message: string;
+}
+

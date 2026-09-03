@@ -9,6 +9,7 @@ import {
   DaySchedule,
   BusinessConfig,
   ReservationStatus,
+  AuthUser,
 } from './types';
 import { api } from './services/api';
 import { Sidebar } from './components/Sidebar';
@@ -22,6 +23,7 @@ import { ProfesionalesView } from './components/ProfesionalesView';
 import { HorariosView } from './components/HorariosView';
 import { ReportesView } from './components/ReportesView';
 import { ConfiguracionView } from './components/ConfiguracionView';
+import { LoginView } from './components/LoginView';
 import { NewReservationModal } from './components/NewReservationModal';
 import { ReservationDetailsModal } from './components/ReservationDetailsModal';
 import { NewServiceModal } from './components/NewServiceModal';
@@ -30,6 +32,11 @@ import { AdminProfileModal } from './components/AdminProfileModal';
 import { Toast } from './components/Toast';
 
 export function App() {
+  // Authentication States
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [authUser, setAuthUser] = useState<AuthUser | null>(null);
+  const [isAuthChecking, setIsAuthChecking] = useState<boolean>(true);
+
   // Navigation State
   const [currentView, setCurrentView] = useState<ViewMode>('dashboard');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -112,9 +119,46 @@ export function App() {
     }
   }, []);
 
+  // Validate session on initial load
   useEffect(() => {
-    fetchAllData();
+    const checkAuthSession = async () => {
+      const token = localStorage.getItem('turnia_auth_token') || sessionStorage.getItem('turnia_auth_token');
+      if (token) {
+        try {
+          const res = await api.auth.getMe();
+          setAuthUser(res.user);
+          setIsAuthenticated(true);
+          await fetchAllData();
+        } catch (err) {
+          console.warn('Token expired or invalid:', err);
+          api.auth.logout();
+          setIsAuthenticated(false);
+          setAuthUser(null);
+        }
+      } else {
+        setIsAuthenticated(false);
+        setAuthUser(null);
+      }
+      setIsAuthChecking(false);
+    };
+
+    checkAuthSession();
   }, [fetchAllData]);
+
+  // Auth Handlers
+  const handleLoginSuccess = async (user: AuthUser) => {
+    setAuthUser(user);
+    setIsAuthenticated(true);
+    showToast(`¡Bienvenido de nuevo, ${user.name}!`);
+    await fetchAllData();
+  };
+
+  const handleLogout = () => {
+    api.auth.logout();
+    setIsAuthenticated(false);
+    setAuthUser(null);
+    showToast('Has cerrado sesión correctamente.', 'info');
+  };
 
   // Handlers for Reservations
   const handleCreateReservation = async (newResData: Omit<Reservation, 'id' | 'createdAt'>) => {
@@ -315,6 +359,29 @@ export function App() {
     setIsNewBookingOpen(true);
   };
 
+  // Initial loading splash
+  if (isAuthChecking) {
+    return (
+      <div className="min-h-screen bg-[#e8ecf2] flex items-center justify-center p-4">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-10 h-10 border-3 border-[#1e2b82] border-t-transparent rounded-full animate-spin" />
+          <p className="text-xs font-bold text-[#1e2b82] tracking-wider uppercase">Iniciando Turnia...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // If NOT authenticated, render the Login Screen
+  if (!isAuthenticated) {
+    return (
+      <LoginView
+        onLoginSuccess={handleLoginSuccess}
+        businessName={businessConfig?.name || 'TURNIA'}
+        logoUrl={businessConfig?.logoUrl}
+      />
+    );
+  }
+
   // Real Dynamic Calculations
   const now = new Date();
   const currentMonthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
@@ -335,9 +402,11 @@ export function App() {
         }}
         pendingCount={pendingCount}
         onOpenProfile={() => setIsProfileOpen(true)}
+        onLogout={handleLogout}
         isMobileOpen={isMobileMenuOpen}
         onCloseMobile={() => setIsMobileMenuOpen(false)}
         businessConfig={businessConfig}
+        user={authUser}
       />
 
       {/* Main Content Layout */}
@@ -531,7 +600,9 @@ export function App() {
         isOpen={isProfileOpen}
         onClose={() => setIsProfileOpen(false)}
         onNavigateToSettings={() => setCurrentView('configuracion')}
+        onLogout={handleLogout}
         config={businessConfig}
+        user={authUser}
       />
 
       {/* Toast Notification */}
