@@ -41,8 +41,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
         { id: 'empleado_dashboard', label: 'Mi Inicio (Turno)', icon: 'dashboard' },
         { id: 'empleado_agenda', label: 'Mi Agenda', icon: 'calendar_month' },
         { id: 'reservas', label: 'Mis Citas', icon: 'event_available', badge: pendingCount },
-        { id: 'clientes', label: 'Mis Clientes', icon: 'group' },
-        { id: 'servicios', label: 'Servicios', icon: 'content_cut' },
       ];
     }
 
