@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import confetti from 'canvas-confetti';
-import { Reservation, Professional, ServiceItem } from '../types';
+import { Reservation, Professional, ServiceItem, DaySchedule } from '../types';
 
 interface NewReservationModalProps {
   isOpen: boolean;
@@ -8,6 +8,7 @@ interface NewReservationModalProps {
   onSave: (reservation: Omit<Reservation, 'id' | 'createdAt'>) => void;
   professionals: Professional[];
   services: ServiceItem[];
+  schedules?: DaySchedule[];
   initialData?: Partial<Reservation>;
 }
 
@@ -17,6 +18,7 @@ export const NewReservationModal: React.FC<NewReservationModalProps> = ({
   onSave,
   professionals,
   services,
+  schedules = [],
   initialData,
 }) => {
   const getTodayStr = () => new Date().toISOString().split('T')[0];
@@ -45,10 +47,84 @@ export const NewReservationModal: React.FC<NewReservationModalProps> = ({
   const todayStr = getTodayStr();
   const currentTimeStr = getCurrentTimeStr();
 
-  // Validate if date/time is in the past
+  const selectedService = services.find((s) => s.id === serviceId) || services[0];
+  const selectedProfessional =
+    professionals.find((p) => p.id === professionalId) || professionals[0];
+  const duration = selectedService ? selectedService.durationMinutes : 45;
+
+  // 1. Validate if date/time is in the past
   const isDateInPast = date < todayStr;
   const isTimeInPast = date === todayStr && time < currentTimeStr;
   const isPastInvalid = isDateInPast || isTimeInPast;
+
+  // 2. Validate business opening schedule and breaks
+  const validateBusinessSchedule = () => {
+    if (!date || !schedules || schedules.length === 0) return { isValid: true };
+
+    const [y, m, d] = date.split('-').map(Number);
+    const dateObj = new Date(y, m - 1, d);
+    const jsDay = dateObj.getDay(); // 0 is Sun, 1 is Mon...
+    const dayCode = jsDay === 0 ? 7 : jsDay;
+
+    const daySchedule = schedules.find((s) => s.dayCode === dayCode);
+    if (!daySchedule || !daySchedule.active || !daySchedule.blocks || daySchedule.blocks.length === 0) {
+      return {
+        isValid: false,
+        reason: `El negocio se encuentra cerrado los días ${daySchedule?.dayName || 'seleccionados'}. Por favor elige otro día.`
+      };
+    }
+
+    if (!time) return { isValid: true };
+
+    const [h, min] = time.split(':').map(Number);
+    const startMins = h * 60 + min;
+    const endMins = startMins + duration;
+
+    const workingBlocks = daySchedule.blocks.filter((b) => !b.isBreak);
+    const breakBlocks = daySchedule.blocks.filter((b) => b.isBreak);
+
+    // Check if within working blocks
+    let fallsInWorkingBlock = false;
+    for (const block of workingBlocks) {
+      const [bhStartH, bhStartM] = block.start.split(':').map(Number);
+      const [bhEndH, bhEndM] = block.end.split(':').map(Number);
+      const blockStartMins = bhStartH * 60 + bhStartM;
+      const blockEndMins = bhEndH * 60 + bhEndM;
+
+      if (startMins >= blockStartMins && endMins <= blockEndMins) {
+        fallsInWorkingBlock = true;
+        break;
+      }
+    }
+
+    // Check if overlaps break blocks
+    for (const brk of breakBlocks) {
+      const [brkStartH, brkStartM] = brk.start.split(':').map(Number);
+      const [brkEndH, brkEndM] = brk.end.split(':').map(Number);
+      const brkStartMins = brkStartH * 60 + brkStartM;
+      const brkEndMins = brkEndH * 60 + brkEndM;
+
+      if (startMins < brkEndMins && endMins > brkStartMins) {
+        return {
+          isValid: false,
+          reason: `El horario seleccionado coincide con un descanso (${brk.label || 'Almuerzo / Pausa'} de ${brk.start} a ${brk.end}). Por favor elige otra hora.`
+        };
+      }
+    }
+
+    if (!fallsInWorkingBlock) {
+      const hoursDesc = workingBlocks.map((b) => `${b.start} a ${b.end}`).join(' y ');
+      return {
+        isValid: false,
+        reason: `Fuera del horario de atención. El horario para ${daySchedule.dayName} es de ${hoursDesc || 'no disponible'}.`
+      };
+    }
+
+    return { isValid: true };
+  };
+
+  const scheduleValidation = validateBusinessSchedule();
+  const isFormInvalid = isPastInvalid || !scheduleValidation.isValid || !clientName.trim();
 
   useEffect(() => {
     if (initialData) {
@@ -69,16 +145,11 @@ export const NewReservationModal: React.FC<NewReservationModalProps> = ({
 
   if (!isOpen) return null;
 
-  const selectedService = services.find((s) => s.id === serviceId) || services[0];
-  const selectedProfessional =
-    professionals.find((p) => p.id === professionalId) || professionals[0];
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!clientName.trim() || isPastInvalid) return;
+    if (isFormInvalid) return;
 
     // Calculate end time
-    const duration = selectedService ? selectedService.durationMinutes : 45;
     const [hours, mins] = time.split(':').map(Number);
     const totalMinutes = (isNaN(hours) ? 9 : hours) * 60 + (isNaN(mins) ? 0 : mins) + duration;
     const endHour = String(Math.floor(totalMinutes / 60) % 24).padStart(2, '0');
@@ -206,7 +277,7 @@ export const NewReservationModal: React.FC<NewReservationModalProps> = ({
             </div>
           </div>
 
-          {/* Section 3: Date & Time in 2 balanced columns with MIN DATE validation */}
+          {/* Section 3: Date & Time in 2 balanced columns with validation */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
             <div>
               <label className="block text-xs font-semibold text-[#454652] mb-1.5">
@@ -218,7 +289,7 @@ export const NewReservationModal: React.FC<NewReservationModalProps> = ({
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
                 className={`w-full border rounded-xl px-3.5 py-2.5 text-sm text-[#191c1d] bg-white outline-none font-medium transition-all ${
-                  isDateInPast
+                  isDateInPast || !scheduleValidation.isValid
                     ? 'border-[#ba1a1a] focus:ring-2 focus:ring-[#ba1a1a]/20'
                     : 'border-[#e1e3e4] focus:border-[#24389c] focus:ring-2 focus:ring-[#24389c]/15'
                 }`}
@@ -235,7 +306,7 @@ export const NewReservationModal: React.FC<NewReservationModalProps> = ({
                 value={time}
                 onChange={(e) => setTime(e.target.value)}
                 className={`w-full border rounded-xl px-3.5 py-2.5 text-sm font-mono text-[#191c1d] bg-white outline-none font-bold transition-all ${
-                  isTimeInPast
+                  isTimeInPast || !scheduleValidation.isValid
                     ? 'border-[#ba1a1a] text-[#ba1a1a] focus:ring-2 focus:ring-[#ba1a1a]/20'
                     : 'border-[#e1e3e4] focus:border-[#24389c] focus:ring-2 focus:ring-[#24389c]/15'
                 }`}
@@ -244,7 +315,7 @@ export const NewReservationModal: React.FC<NewReservationModalProps> = ({
             </div>
           </div>
 
-          {/* REAL-TIME PAST VALIDATION ERROR ALERT */}
+          {/* REAL-TIME ERROR ALERTS: PAST DATE OR CLOSED/UNAVAILABLE SCHEDULE */}
           {isPastInvalid && (
             <div className="p-3 bg-[#ffdad6]/60 border border-[#ffdad6] rounded-xl flex items-start gap-2 text-xs text-[#ba1a1a] font-semibold animate-in fade-in duration-150">
               <span className="material-symbols-outlined text-[18px] shrink-0 mt-0.5">error</span>
@@ -253,6 +324,13 @@ export const NewReservationModal: React.FC<NewReservationModalProps> = ({
                   ? 'No puedes seleccionar una fecha anterior a hoy.'
                   : `La hora seleccionada (${time}) ya ha pasado. La hora actual es ${currentTimeStr}. Por favor selecciona un horario posterior.`}
               </span>
+            </div>
+          )}
+
+          {!isPastInvalid && !scheduleValidation.isValid && (
+            <div className="p-3 bg-[#ffdcc6]/80 border border-[#ffdcc6] rounded-xl flex items-start gap-2 text-xs text-[#6c3400] font-semibold animate-in fade-in duration-150">
+              <span className="material-symbols-outlined text-[18px] shrink-0 mt-0.5">event_busy</span>
+              <span>{scheduleValidation.reason}</span>
             </div>
           )}
 
@@ -290,7 +368,7 @@ export const NewReservationModal: React.FC<NewReservationModalProps> = ({
           <div className="p-3.5 bg-[#f8f9fa] border border-[#e1e3e4] rounded-xl flex items-center justify-between text-xs">
             <div className="flex items-center gap-1.5 text-[#454652]">
               <span className="material-symbols-outlined text-[16px] text-[#757684]">schedule</span>
-              <span>Duración: <strong className="text-[#191c1d]">{selectedService?.durationMinutes || 45} min</strong></span>
+              <span>Duración: <strong className="text-[#191c1d]">{duration} min</strong></span>
             </div>
             <div className="flex items-center gap-1.5">
               <span className="text-[#757684]">Precio:</span>
@@ -311,9 +389,9 @@ export const NewReservationModal: React.FC<NewReservationModalProps> = ({
             </button>
             <button
               type="submit"
-              disabled={isPastInvalid || !clientName.trim()}
+              disabled={isFormInvalid}
               className={`h-10 px-5 text-white font-bold rounded-xl text-xs shadow-xs transition-all flex items-center gap-1.5 ${
-                isPastInvalid || !clientName.trim()
+                isFormInvalid
                   ? 'bg-[#c5c5d4] cursor-not-allowed opacity-60'
                   : 'bg-[#24389c] hover:bg-[#1d2d7c] cursor-pointer active:scale-[0.98]'
               }`}

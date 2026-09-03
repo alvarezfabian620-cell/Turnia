@@ -169,8 +169,13 @@ export const ClientesView: React.FC<ClientesViewProps> = ({
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#f3f4f5] text-sm">
-                {filteredClients.map((client) => (
-                  <tr key={client.id} className="hover:bg-[#f8f9fa] transition-colors">
+                {filteredClients.map((client, index) => (
+                  <tr
+                    key={client.id}
+                    className={`transition-colors ${
+                      index % 2 === 1 ? 'bg-[#f9fafb]' : 'bg-white'
+                    } hover:bg-[#dee0ff]/25`}
+                  >
                     <td className="py-3.5 px-4 font-semibold text-[#191c1d]">
                       {client.name}
                       {client.notes && (

@@ -73,6 +73,71 @@ reservationsRouter.post('/', async (req: Request, res: Response) => {
       });
     }
 
+    // Validate business opening schedule
+    const [y, m, d] = req.body.date.split('-').map(Number);
+    const dateObj = new Date(y, m - 1, d);
+    const jsDay = dateObj.getDay();
+    const dayCode = jsDay === 0 ? 7 : jsDay;
+
+    const [scheduleRows]: any = await pool.query('SELECT * FROM schedules WHERE day_code = ?', [dayCode]);
+    if (scheduleRows.length > 0) {
+      const sch = scheduleRows[0];
+      if (!sch.active) {
+        return res.status(400).json({
+          error: `El negocio se encuentra cerrado los días ${sch.day_name}.`
+        });
+      }
+      let blocks: any[] = [];
+      try {
+        blocks = typeof sch.blocks === 'string' ? JSON.parse(sch.blocks) : sch.blocks;
+      } catch (e) {
+        blocks = [];
+      }
+
+      if (blocks.length > 0) {
+        const [h, min] = req.body.time.split(':').map(Number);
+        const startMins = h * 60 + min;
+        const endMins = startMins + (Number(req.body.durationMinutes) || 30);
+
+        const workingBlocks = blocks.filter((b: any) => !b.isBreak);
+        const breakBlocks = blocks.filter((b: any) => b.isBreak);
+
+        // Check break overlap
+        for (const brk of breakBlocks) {
+          const [brkStartH, brkStartM] = brk.start.split(':').map(Number);
+          const [brkEndH, brkEndM] = brk.end.split(':').map(Number);
+          const brkStartMins = brkStartH * 60 + brkStartM;
+          const brkEndMins = brkEndH * 60 + brkEndM;
+
+          if (startMins < brkEndMins && endMins > brkStartMins) {
+            return res.status(400).json({
+              error: `El horario coincide con un descanso (${brk.label || 'Descanso'} de ${brk.start} a ${brk.end}).`
+            });
+          }
+        }
+
+        // Check working block fit
+        let fitsWorkingBlock = false;
+        for (const block of workingBlocks) {
+          const [bhStartH, bhStartM] = block.start.split(':').map(Number);
+          const [bhEndH, bhEndM] = block.end.split(':').map(Number);
+          const blockStartMins = bhStartH * 60 + bhStartM;
+          const blockEndMins = bhEndH * 60 + bhEndM;
+
+          if (startMins >= blockStartMins && endMins <= blockEndMins) {
+            fitsWorkingBlock = true;
+            break;
+          }
+        }
+
+        if (!fitsWorkingBlock) {
+          return res.status(400).json({
+            error: `La hora seleccionada (${req.body.time}) está fuera del horario de atención de los días ${sch.day_name}.`
+          });
+        }
+      }
+    }
+
     const newRes: Reservation = {
       id,
       clientName: req.body.clientName,

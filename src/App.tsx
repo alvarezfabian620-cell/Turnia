@@ -629,6 +629,7 @@ export function App() {
         onSave={handleCreateReservation}
         professionals={professionals}
         services={services}
+        schedules={schedule}
         initialData={bookingPrefill}
       />
 
