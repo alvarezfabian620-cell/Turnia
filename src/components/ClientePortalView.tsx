@@ -18,7 +18,6 @@ export const ClientePortalView: React.FC<ClientePortalViewProps> = ({
   onOpenNewBooking,
   onCancelReservation,
 }) => {
-  const [activeCategory, setActiveCategory] = useState<string>('todos');
   const [tabMode, setTabMode] = useState<'activas' | 'historial'>('activas');
 
   // Filter appointments for this client
@@ -40,14 +39,7 @@ export const ClientePortalView: React.FC<ClientePortalViewProps> = ({
     (r) => r.status === 'completada' || r.status === 'cancelada'
   );
 
-  // Available categories
-  const categories = ['todos', ...Array.from(new Set(services.map((s) => s.category).filter(Boolean)))];
-
-  const filteredServices = services.filter((s) => {
-    if (!s.active) return false;
-    if (activeCategory === 'todos') return true;
-    return s.category === activeCategory;
-  });
+  const activeServices = services.filter((s) => s.active);
 
   return (
     <div className="space-y-8 max-w-6xl mx-auto">
@@ -79,7 +71,7 @@ export const ClientePortalView: React.FC<ClientePortalViewProps> = ({
 
       {/* 1. MAIN SECTION: CATÁLOGO DE SERVICIOS DISPONIBLES */}
       <div className="bg-white border border-[#e1e3e4] rounded-2xl p-6 shadow-2xs space-y-5">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-[#e1e3e4] pb-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#e1e3e4] pb-4">
           <div>
             <h3 className="font-bold text-xl text-[#191c1d] flex items-center gap-2 tracking-tight">
               <span className="material-symbols-outlined text-[#24389c] text-[24px]">content_cut</span>
@@ -90,27 +82,14 @@ export const ClientePortalView: React.FC<ClientePortalViewProps> = ({
             </p>
           </div>
 
-          {/* Clean Wrapped Category Filter */}
-          <div className="flex flex-wrap items-center gap-1.5 bg-[#f3f4f5] p-1.5 rounded-2xl border border-[#e1e3e4]">
-            {categories.map((cat) => (
-              <button
-                key={cat}
-                onClick={() => setActiveCategory(cat)}
-                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer capitalize ${
-                  activeCategory === cat
-                    ? 'bg-[#24389c] text-white shadow-2xs'
-                    : 'text-[#454652] hover:text-[#191c1d] hover:bg-white/60'
-                }`}
-              >
-                {cat}
-              </button>
-            ))}
-          </div>
+          <span className="text-xs text-[#757684]">
+            Total disponibles: <strong className="text-[#24389c]">{activeServices.length}</strong>
+          </span>
         </div>
 
-        {/* Services Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredServices.map((service) => (
+        {/* Services Grid (Max 2 rows before smooth internal scroll) */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-[460px] overflow-y-auto pr-1.5 scroll-smooth">
+          {activeServices.map((service) => (
             <div
               key={service.id}
               className="p-5 border border-[#e1e3e4] rounded-2xl bg-white hover:border-[#24389c] hover:shadow-xs transition-all flex flex-col justify-between group"
