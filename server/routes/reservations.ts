@@ -328,14 +328,31 @@ reservationsRouter.patch('/:id/status', async (req: Request, res: Response) => {
     await pool.query('UPDATE reservations SET status = ? WHERE id = ?', [status, id]);
 
     let activityItem: any = null;
+    let notifTitle = '';
+    let notifType = 'system';
+
     if (status === 'cancelada') {
+      notifTitle = `Reserva cancelada: ${current.client_name}`;
+      notifType = 'cancellation';
+    } else if (status === 'confirmada') {
+      notifTitle = `Cita confirmada para ${current.client_name} (${current.service_name})`;
+      notifType = 'new_booking';
+    } else if (status === 'en_curso') {
+      notifTitle = `Cita en curso: ${current.client_name} (${current.service_name})`;
+      notifType = 'new_booking';
+    } else if (status === 'completada') {
+      notifTitle = `Cita completada y atendida: ${current.client_name}`;
+      notifType = 'payment';
+    }
+
+    if (notifTitle) {
       activityItem = {
         id: `act-${Date.now()}`,
-        title: `Reserva cancelada: ${current.client_name}`,
+        title: notifTitle,
         clientName: current.client_name,
         timeAgo: 'Justo ahora',
-        type: 'cancellation',
-        amount: null,
+        type: notifType,
+        amount: status === 'completada' ? Number(current.price) : null,
         timestamp: new Date().toISOString(),
       };
       await pool.query(
