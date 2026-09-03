@@ -267,9 +267,6 @@ export const ProfesionalesView: React.FC<ProfesionalesViewProps> = ({
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
                         <span className="font-bold text-sm text-[#191c1d]">{res.clientName}</span>
-                        {res.clientPhone && (
-                          <span className="text-xs font-mono text-[#757684]">({res.clientPhone})</span>
-                        )}
                       </div>
                       <div className="text-xs text-[#454652] flex items-center gap-2">
                         <span className="font-semibold text-[#24389c]">{res.serviceName}</span>
