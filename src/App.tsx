@@ -414,15 +414,12 @@ export function App() {
         {/* Top Header */}
         <Header
           currentView={currentView}
-          searchQuery={searchQuery}
-          onSearchChange={setSearchQuery}
           onOpenNewBooking={() => handleOpenBookingModal()}
           onOpenProfile={() => setIsProfileOpen(true)}
           onOpenMobileMenu={() => setIsMobileMenuOpen(true)}
           activities={activities}
           onNavigate={(view) => {
             setCurrentView(view);
-            setSearchQuery('');
           }}
         />
 

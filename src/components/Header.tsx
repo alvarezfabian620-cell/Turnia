@@ -3,8 +3,6 @@ import { ActivityItem, ViewMode } from '../types';
 
 interface HeaderProps {
   currentView: ViewMode;
-  searchQuery: string;
-  onSearchChange: (query: string) => void;
   onOpenNewBooking: () => void;
   onOpenProfile: () => void;
   onOpenMobileMenu: () => void;
@@ -13,10 +11,6 @@ interface HeaderProps {
 }
 
 export const Header: React.FC<HeaderProps> = ({
-  currentView,
-  searchQuery,
-  onSearchChange,
-  onOpenNewBooking,
   onOpenProfile,
   onOpenMobileMenu,
   activities,
@@ -24,7 +18,6 @@ export const Header: React.FC<HeaderProps> = ({
 }) => {
   const [showNotifications, setShowNotifications] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
-  const [avatarError, setAvatarError] = useState(false);
   const notifRef = useRef<HTMLDivElement>(null);
   const helpRef = useRef<HTMLDivElement>(null);
 
@@ -42,64 +35,32 @@ export const Header: React.FC<HeaderProps> = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const searchPlaceholders: Record<ViewMode, string> = {
-    dashboard: 'Buscar reservas, clientes, servicios...',
-    reservas: 'Buscar por cliente o teléfono...',
-    calendario: 'Buscar citas en calendario...',
-    clientes: 'Buscar clientes registrados...',
-    servicios: 'Buscar servicios por nombre o categoría...',
-    profesionales: 'Buscar profesionales por nombre o rol...',
-    horarios: 'Buscar franjas horarias...',
-    reportes: 'Buscar métricas o reportes...',
-    configuracion: 'Buscar ajustes del negocio...',
-  };
-
   return (
     <header className="flex justify-between items-center w-full h-[64px] px-4 md:px-8 bg-white border-b border-[#e1e3e4] sticky top-0 z-30 shadow-2xs">
-      {/* Left side: Mobile button + Search bar */}
-      <div className="flex items-center gap-3 flex-1 max-w-xl">
+      {/* Left side: Mobile menu button */}
+      <div className="flex items-center gap-3">
         <button
           onClick={onOpenMobileMenu}
-          className="md:hidden p-2 text-[#454652] hover:bg-[#f3f4f5] rounded-lg transition-colors"
+          className="md:hidden p-2 text-[#454652] hover:bg-[#f3f4f5] rounded-lg transition-colors cursor-pointer"
           aria-label="Abrir menú"
         >
           <span className="material-symbols-outlined text-[24px]">menu</span>
         </button>
-
-        <div className="relative w-full max-w-[340px]">
-          <span className="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-[#757684] text-[20px] pointer-events-none">
-            search
-          </span>
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => onSearchChange(e.target.value)}
-            placeholder={searchPlaceholders[currentView] || 'Buscar...'}
-            className="w-full pl-10 pr-8 py-2 bg-[#f3f4f5] hover:bg-[#edeeef] focus:bg-white border border-[#e1e3e4] rounded-lg text-sm text-[#191c1d] placeholder-[#757684] focus:outline-none focus:border-[#24389c] focus:ring-2 focus:ring-[#24389c]/20 transition-all"
-          />
-          {searchQuery && (
-            <button
-              onClick={() => onSearchChange('')}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#757684] hover:text-[#191c1d] p-0.5 rounded-full"
-            >
-              <span className="material-symbols-outlined text-[16px]">close</span>
-            </button>
-          )}
-        </div>
       </div>
 
       {/* Right side: Notifications, Help, Profile */}
-      <div className="flex items-center gap-2 md:gap-3">
-
+      <div className="flex items-center gap-2 md:gap-3 ml-auto">
         {/* Notifications Popover */}
         <div className="relative" ref={notifRef}>
           <button
             onClick={() => setShowNotifications(!showNotifications)}
-            className="relative p-2 text-[#454652] hover:text-[#24389c] hover:bg-[#f3f4f5] rounded-full transition-colors"
+            className="relative p-2 text-[#454652] hover:text-[#24389c] hover:bg-[#f3f4f5] rounded-full transition-colors cursor-pointer"
             title="Notificaciones"
           >
             <span className="material-symbols-outlined text-[22px]">notifications</span>
-            <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-[#ba1a1a] rounded-full ring-2 ring-white"></span>
+            {activities.length > 0 && (
+              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-[#ba1a1a] rounded-full ring-2 ring-white"></span>
+            )}
           </button>
 
           {showNotifications && (
@@ -113,7 +74,7 @@ export const Header: React.FC<HeaderProps> = ({
                 </div>
                 <button
                   onClick={() => onNavigate('dashboard')}
-                  className="text-xs text-[#24389c] hover:underline font-medium"
+                  className="text-xs text-[#24389c] hover:underline font-medium cursor-pointer"
                 >
                   Ver resumen
                 </button>
@@ -159,7 +120,7 @@ export const Header: React.FC<HeaderProps> = ({
         <div className="relative" ref={helpRef}>
           <button
             onClick={() => setShowHelp(!showHelp)}
-            className="p-2 text-[#454652] hover:text-[#24389c] hover:bg-[#f3f4f5] rounded-full transition-colors"
+            className="p-2 text-[#454652] hover:text-[#24389c] hover:bg-[#f3f4f5] rounded-full transition-colors cursor-pointer"
             title="Ayuda y documentación"
           >
             <span className="material-symbols-outlined text-[22px]">help_outline</span>
@@ -194,7 +155,7 @@ export const Header: React.FC<HeaderProps> = ({
         {/* Profile Avatar trigger */}
         <button
           onClick={onOpenProfile}
-          className="flex items-center gap-2 p-1 rounded-full hover:ring-2 hover:ring-[#24389c]/40 transition-all"
+          className="flex items-center gap-2 p-1 rounded-full hover:ring-2 hover:ring-[#24389c]/40 transition-all cursor-pointer"
           title="Ver perfil de administrador"
         >
           <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-[#24389c] to-[#3f51b5] text-white flex items-center justify-center border border-[#e1e3e4] shadow-2xs font-bold text-xs">
