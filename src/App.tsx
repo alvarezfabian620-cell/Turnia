@@ -28,6 +28,8 @@ import { NewReservationModal } from './components/NewReservationModal';
 import { ReservationDetailsModal } from './components/ReservationDetailsModal';
 import { NewServiceModal } from './components/NewServiceModal';
 import { NewProfessionalModal } from './components/NewProfessionalModal';
+import { AdminProfileModal } from './components/AdminProfileModal';
+import { Toast } from './components/Toast';
 import { wsService } from './services/websocket';
 
 export function App() {
