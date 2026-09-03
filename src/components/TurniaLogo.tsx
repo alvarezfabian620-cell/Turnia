@@ -37,27 +37,32 @@ export const TurniaLogo: React.FC<TurniaLogoProps> = ({
     <div className={`flex items-center gap-3 ${className}`}>
       {/* Logo Icon Container */}
       <div
-        className={`${iconSizes[size]} rounded-xl flex items-center justify-center shrink-0 shadow-xs overflow-hidden border border-[#e1e3e4] bg-white transition-transform hover:scale-105`}
+        className={`${iconSizes[size]} rounded-xl flex items-center justify-center shrink-0 shadow-xs overflow-hidden border border-[#e1e3e4] bg-[#0b132b] transition-transform hover:scale-105`}
       >
         {hasValidCustomLogo ? (
           <img
             src={logoUrl}
             alt={businessName || 'Logo del Negocio'}
-            className="w-full h-full object-contain p-1"
+            className="w-full h-full object-contain p-1 bg-white"
             onError={() => setImageError(true)}
           />
         ) : (
-          <div className="w-full h-full bg-gradient-to-tr from-[#24389c] to-[#4c56af] flex items-center justify-center text-white font-bold">
-            <svg
-              viewBox="0 0 24 24"
-              className="w-5/6 h-5/6 stroke-current fill-none"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-            </svg>
-          </div>
+          <svg viewBox="0 0 100 100" className="w-full h-full p-1" fill="none" xmlns="http://www.w3.org/2000/svg">
+            {/* Cyan background arc */}
+            <path d="M15 32C15 22 24 16 42 16H60C56 22 50 26 42 26H36C28 26 26 32 26 42C26 56 36 66 48 66C44 72 38 76 30 76C18 76 15 64 15 50V32Z" fill="#00D2FF" />
+            {/* Main squircle */}
+            <rect x="25" y="18" width="56" height="56" rx="16" fill="#0B132B" stroke="#FFFFFF" strokeWidth="2.5" />
+            {/* Calendar dots */}
+            <circle cx="41" cy="34" r="2.8" fill="#00D2FF" />
+            <circle cx="53" cy="34" r="2.8" fill="#00D2FF" />
+            <circle cx="65" cy="34" r="2.8" fill="#00D2FF" />
+            <circle cx="41" cy="45" r="2.8" fill="#00D2FF" />
+            <circle cx="53" cy="45" r="2.8" fill="#00D2FF" />
+            <circle cx="65" cy="45" r="2.8" fill="#00D2FF" />
+            {/* Checkmark circle badge */}
+            <circle cx="62" cy="59" r="8" fill="#00D2FF" />
+            <path d="M59 59L61 61L65 57" stroke="#0B132B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
         )}
       </div>
 
@@ -65,13 +70,13 @@ export const TurniaLogo: React.FC<TurniaLogoProps> = ({
       {showText && (
         <div className="flex flex-col min-w-0 max-w-[170px]">
           <span
-            className={`font-bold tracking-tight text-[#191c1d] ${textSizes[size]} font-sans truncate leading-tight`}
+            className={`font-extrabold tracking-tight text-[#191c1d] ${textSizes[size]} font-sans truncate leading-tight`}
             title={businessName || 'TURNIA'}
           >
             {businessName || 'TURNIA'}
           </span>
-          <span className="text-[11px] font-semibold text-[#24389c] truncate tracking-wide">
-            {category || 'SaaS Reservas'}
+          <span className="text-[10px] font-bold uppercase tracking-wider text-[#24389c] truncate">
+            {category || 'Gestión & Agenda'}
           </span>
         </div>
       )}

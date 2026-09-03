@@ -209,7 +209,7 @@ export const LoginView: React.FC<LoginViewProps> = ({
           <div>
             {/* Heading */}
             <div className="mb-6">
-              <h1 className="text-2xl sm:text-3xl font-bold text-[#191c1d] tracking-tight">
+              <h1 className="text-2xl sm:text-3xl font-extrabold text-[#191c1d] tracking-tight">
                 {authMode === 'login' ? 'Iniciar sesión' : 'Crear cuenta'}
               </h1>
               <p className="text-xs sm:text-sm text-[#757684] mt-1.5">
@@ -504,64 +504,64 @@ export const LoginView: React.FC<LoginViewProps> = ({
               )}
             </div>
           </div>
-
-          {/* Footer Info / Support */}
-          <div className="mt-4 text-center">
-            <p className="text-[11px] text-[#757684]">
-              ¿Problemas para acceder?{' '}
-              <button
-                type="button"
-                onClick={() =>
-                  alert(
-                    'Credenciales de acceso por defecto:\n\nUsuario: admin@turnia.com\nContraseña: Turnia2026!\n\nSi necesitas asistencia técnica, contacta a soporte@turnia.app.'
-                  )
-                }
-                className="text-[#24389c] font-semibold hover:underline"
-              >
-                Soporte técnico
-              </button>
-            </p>
-          </div>
         </div>
 
         {/* RIGHT COLUMN: Brand Identity Banner */}
         <div className="bg-[#1a2b7b] p-8 sm:p-12 flex flex-col items-center justify-center text-center relative overflow-hidden">
-          {/* Subtle geometric circles */}
+          {/* Subtle geometric background glows */}
           <div className="absolute -right-20 -top-20 w-64 h-64 bg-white/5 rounded-full blur-2xl pointer-events-none" />
           <div className="absolute -left-20 -bottom-20 w-64 h-64 bg-[#00d2ff]/10 rounded-full blur-2xl pointer-events-none" />
 
-          {/* Turnia Stylized Vector Icon matching design */}
+          {/* Clean Stylized Turnia Vector Logo */}
           <div className="relative mb-6">
-            <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-3xl bg-[#131f5c] border-2 border-white/20 shadow-2xl flex items-center justify-center relative p-3 backdrop-blur-sm">
-              {/* Cyan Arc 'T' Accents */}
-              <div className="absolute -top-2 -left-2 w-10 h-10 border-t-4 border-l-4 border-[#00d2ff] rounded-tl-2xl pointer-events-none" />
-              
-              {/* Calendar with Checkmark Icon */}
-              <div className="w-full h-full bg-[#0a1238] rounded-2xl flex flex-col items-center justify-center border border-white/10 p-2 shadow-inner">
-                <div className="grid grid-cols-3 gap-1.5 mb-1.5">
-                  <div className="w-2 h-2 rounded-full bg-[#00d2ff]" />
-                  <div className="w-2 h-2 rounded-full bg-[#00d2ff]" />
-                  <div className="w-2 h-2 rounded-full bg-[#00d2ff]" />
-                  <div className="w-2 h-2 rounded-full bg-[#00d2ff]" />
-                  <div className="w-2 h-2 rounded-full bg-[#00d2ff]" />
-                  <div className="w-2 h-2 rounded-full bg-[#00d2ff]" />
-                </div>
-                <div className="w-6 h-6 rounded-full bg-[#00d2ff] flex items-center justify-center text-[#0a1238]">
-                  <span className="material-symbols-outlined text-[16px] font-extrabold">
-                    check
-                  </span>
-                </div>
-              </div>
-            </div>
+            <svg
+              viewBox="0 0 120 120"
+              className="w-28 h-28 drop-shadow-2xl"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              {/* Cyan swoosh arc */}
+              <path
+                d="M22 42C22 28 34 20 56 20H78C74 27 66 32 56 32H48C38 32 35 40 35 52C35 70 48 82 64 82C58 90 50 94 38 94C24 94 22 78 22 62V42Z"
+                fill="#00D2FF"
+              />
+              {/* Main navy squircle badge */}
+              <rect
+                x="34"
+                y="24"
+                width="66"
+                height="66"
+                rx="20"
+                fill="#0B132B"
+                stroke="#FFFFFF"
+                strokeWidth="2.8"
+              />
+              {/* Calendar Grid Dots */}
+              <circle cx="53" cy="44" r="3.2" fill="#00D2FF" />
+              <circle cx="67" cy="44" r="3.2" fill="#00D2FF" />
+              <circle cx="81" cy="44" r="3.2" fill="#00D2FF" />
+              <circle cx="53" cy="56" r="3.2" fill="#00D2FF" />
+              <circle cx="67" cy="56" r="3.2" fill="#00D2FF" />
+              <circle cx="81" cy="56" r="3.2" fill="#00D2FF" />
+              {/* Checkmark badge */}
+              <circle cx="78" cy="72" r="9.5" fill="#00D2FF" />
+              <path
+                d="M74.5 72L77 74.5L82 69.5"
+                stroke="#0B132B"
+                strokeWidth="2.4"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
           </div>
 
           {/* Brand Name */}
-          <h2 className="text-2xl sm:text-3xl font-extrabold text-white tracking-widest uppercase">
+          <h2 className="text-3xl font-extrabold text-white tracking-[0.2em] uppercase font-sans">
             {businessName}
           </h2>
 
           {/* Subtitle */}
-          <p className="text-[11px] sm:text-xs font-bold uppercase tracking-[0.25em] text-[#bac3ff] mt-1.5">
+          <p className="text-xs font-bold uppercase tracking-[0.3em] text-[#bac3ff] mt-2 font-sans">
             Gestión & Agenda
           </p>
         </div>
