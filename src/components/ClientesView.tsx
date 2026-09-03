@@ -168,31 +168,23 @@ export const ClientesView: React.FC<ClientesViewProps> = ({
                       index % 2 === 1 ? 'bg-[#eff1f4]' : 'bg-white'
                     } hover:bg-[#dee0ff]/40`}
                   >
-                    <td className="py-3.5 px-4 font-semibold text-[#191c1d]">
+                    <td className="py-3.5 px-4 font-semibold text-[#191c1d] whitespace-nowrap">
                       {client.name}
-                      {client.notes && (
-                        <span className="block text-[11px] font-normal text-[#757684] mt-0.5">
-                          {client.notes}
-                        </span>
-                      )}
                     </td>
-                    <td className="py-3.5 px-4 font-mono text-xs text-[#454652]">{client.phone}</td>
-                    <td className="py-3.5 px-4 text-[#454652] text-xs">{client.email}</td>
-                    <td className="py-3.5 px-4 font-semibold text-[#24389c]">
+                    <td className="py-4 px-4 font-mono text-sm font-medium text-[#191c1d] whitespace-nowrap">
+                      {client.phone || '—'}
+                    </td>
+                    <td className="py-4 px-4 text-sm text-[#454652] whitespace-nowrap">
+                      {client.email || '—'}
+                    </td>
+                    <td className="py-4 px-4 font-bold text-sm text-[#24389c] whitespace-nowrap">
                       {client.totalVisits} citas
                     </td>
-                    <td className="py-3.5 px-4 text-xs text-[#757684]">{client.lastVisit || 'Sin citas'}</td>
+                    <td className="py-4 px-4 text-sm text-[#454652] whitespace-nowrap">
+                      {client.lastVisit || 'Sin citas'}
+                    </td>
                     <td className="py-3.5 px-4 text-right">
                       <div className="flex items-center justify-end gap-1">
-                        {onOpenNewBookingWithClient && (
-                          <button
-                            onClick={() => onOpenNewBookingWithClient(client)}
-                            className="p-1.5 text-[#24389c] hover:bg-[#dee0ff]/60 rounded-lg transition-colors cursor-pointer"
-                            title="Agendar nueva cita para este cliente"
-                          >
-                            <span className="material-symbols-outlined text-[19px] block">calendar_add_on</span>
-                          </button>
-                        )}
                         <button
                           onClick={() => openEditModal(client)}
                           className="p-1.5 text-[#757684] hover:text-[#191c1d] hover:bg-[#f3f4f5] rounded-lg transition-colors cursor-pointer"

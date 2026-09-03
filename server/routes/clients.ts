@@ -143,10 +143,23 @@ clientsRouter.delete('/:id', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const pool = getPool();
-    const [result]: any = await pool.query('DELETE FROM clients WHERE id = ?', [id]);
 
-    if (result.affectedRows === 0) {
+    const [clientRows]: any = await pool.query('SELECT * FROM clients WHERE id = ?', [id]);
+    if (clientRows.length === 0) {
       return res.status(404).json({ error: 'Cliente no encontrado' });
+    }
+
+    const client = clientRows[0];
+
+    // Delete client from clients table
+    await pool.query('DELETE FROM clients WHERE id = ?', [id]);
+
+    // Also delete user account if exists so they can re-register freshly
+    if (client.email && client.email.trim()) {
+      await pool.query('DELETE FROM users WHERE LOWER(email) = LOWER(?)', [client.email.trim()]);
+    }
+    if (client.name && client.name.trim()) {
+      await pool.query('DELETE FROM users WHERE LOWER(name) = LOWER(?)', [client.name.trim()]);
     }
 
     broadcastEvent({
@@ -155,7 +168,7 @@ clientsRouter.delete('/:id', async (req: Request, res: Response) => {
       data: { id, deleted: true },
     });
 
-    res.json({ success: true, id });
+    res.json({ success: true, id, message: 'Cliente y cuenta de acceso eliminados exitosamente.' });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }
