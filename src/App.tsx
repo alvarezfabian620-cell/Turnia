@@ -233,9 +233,11 @@ export default function App() {
 
   // Find logged in professional object if employee
   const loggedProfessional = professionals.find(
-    (p) => (authUser?.professionalId && p.id === authUser.professionalId) ||
-           p.name.toLowerCase() === authUser?.name.toLowerCase()
-  ) || professionals[0];
+    (p) =>
+      (authUser?.professionalId && p.id === authUser.professionalId) ||
+      p.name.trim().toLowerCase() === authUser?.name.trim().toLowerCase() ||
+      (authUser?.email && p.email && p.email.trim().toLowerCase() === authUser.email.trim().toLowerCase())
+  );
 
   // Handlers for Reservations
   const handleCreateReservation = async (reservationData: Omit<Reservation, 'id' | 'createdAt'>) => {

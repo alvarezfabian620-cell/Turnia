@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Reservation, Professional, ServiceItem, AuthUser, ReservationStatus } from '../types';
 
 interface EmpleadoDashboardViewProps {
@@ -15,30 +15,50 @@ export const EmpleadoDashboardView: React.FC<EmpleadoDashboardViewProps> = ({
   currentUser,
   professional,
   reservations,
-  services,
   onUpdateReservationStatus,
   onOpenNewBookingForMe,
   onNavigate,
 }) => {
-  const [selectedDate] = useState(() => {
+  const [statusFilter, setStatusFilter] = useState<'todas' | 'pendientes' | 'completadas'>('todas');
+
+  const selectedDate = useMemo(() => {
     const d = new Date();
     const y = d.getFullYear();
     const m = String(d.getMonth() + 1).padStart(2, '0');
     const day = String(d.getDate()).padStart(2, '0');
     return `${y}-${m}-${day}`;
-  });
+  }, []);
 
-  // Filter reservations assigned to this employee
-  const myReservations = reservations.filter((r) => {
-    if (professional?.id && r.professionalId === professional.id) return true;
-    if (r.professionalName.toLowerCase() === currentUser.name.toLowerCase()) return true;
-    return false;
-  });
+  // Filter reservations assigned strictly to this employee
+  const myReservations = useMemo(() => {
+    if (!currentUser) return [];
+    const normalizedUserName = currentUser.name.trim().toLowerCase();
+    const profId = professional?.id || currentUser.professionalId;
+
+    return reservations.filter((r) => {
+      if (profId && r.professionalId === profId) return true;
+      if (r.professionalName && r.professionalName.trim().toLowerCase() === normalizedUserName) return true;
+      return false;
+    });
+  }, [reservations, professional, currentUser]);
 
   // Today's reservations
-  const todayReservations = myReservations
-    .filter((r) => r.date === selectedDate)
-    .sort((a, b) => a.time.localeCompare(b.time));
+  const todayReservations = useMemo(() => {
+    return myReservations
+      .filter((r) => r.date === selectedDate)
+      .sort((a, b) => a.time.localeCompare(b.time));
+  }, [myReservations, selectedDate]);
+
+  // Filtered by status
+  const displayedReservations = useMemo(() => {
+    if (statusFilter === 'pendientes') {
+      return todayReservations.filter((r) => r.status === 'pendiente' || r.status === 'confirmada' || r.status === 'en_curso');
+    }
+    if (statusFilter === 'completadas') {
+      return todayReservations.filter((r) => r.status === 'completada');
+    }
+    return todayReservations;
+  }, [todayReservations, statusFilter]);
 
   // Completed & stats
   const completedMonth = myReservations.filter((r) => r.status === 'completada').length;
@@ -60,10 +80,10 @@ export const EmpleadoDashboardView: React.FC<EmpleadoDashboardViewProps> = ({
           <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-[#24389c] to-[#3f51b5] text-white flex items-center justify-center font-bold text-xl shadow-xs">
             {currentUser.name.slice(0, 2).toUpperCase()}
           </div>
-            <div>
-              <h2 className="text-2xl font-bold text-[#191c1d] tracking-tight">
-                ¡Hola, {currentUser.name}!
-              </h2>
+          <div>
+            <h2 className="text-2xl font-bold text-[#191c1d] tracking-tight">
+              ¡Hola, {currentUser.name}!
+            </h2>
             <p className="text-[#454652] text-xs sm:text-sm mt-0.5">
               {professional?.role || 'Especialista'} • Tienes{' '}
               <strong className="text-[#191c1d]">{todayReservations.length} citas programadas para hoy</strong>.
@@ -152,186 +172,203 @@ export const EmpleadoDashboardView: React.FC<EmpleadoDashboardViewProps> = ({
         </div>
       </div>
 
-      {/* Main Row: Next Active Appointment & Today's Schedule List */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Next Client / Current Appointment Focus Card */}
-        <div className="lg:col-span-1 bg-white border border-[#e1e3e4] rounded-2xl p-5 shadow-2xs flex flex-col justify-between">
+      {/* Unified Full-Width Today's Schedule Card */}
+      <div className="bg-white border border-[#e1e3e4] rounded-2xl shadow-2xs overflow-hidden">
+        {/* Card Header with Filters */}
+        <div className="p-5 border-b border-[#e1e3e4] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <div className="flex items-center justify-between pb-3 border-b border-[#f0f1f2] mb-4">
-              <h3 className="font-bold text-base text-[#191c1d] flex items-center gap-2">
-                <span className="material-symbols-outlined text-[#24389c] text-[20px]">person_pin</span>
-                <span>Próxima Cita</span>
-              </h3>
-              {nextAppointment && (
-                <span className="text-xs font-mono font-bold text-[#24389c] bg-[#dee0ff]/60 px-2.5 py-1 rounded-lg">
-                  {nextAppointment.time}
-                </span>
-              )}
-            </div>
+            <h3 className="font-bold text-lg text-[#191c1d] tracking-tight">
+              Citas de Hoy
+            </h3>
+            <p className="text-xs text-[#757684] mt-0.5">
+              Fecha: {selectedDate} • Total citas: <strong className="text-[#191c1d]">{todayReservations.length}</strong>
+            </p>
+          </div>
 
-            {nextAppointment ? (
-              <div className="space-y-4">
-                <div className="p-4 bg-[#f8f9fa] border border-[#e1e3e4] rounded-xl space-y-2">
-                  <div className="font-bold text-lg text-[#191c1d]">{nextAppointment.clientName}</div>
-                  {nextAppointment.clientPhone && (
-                    <div className="text-xs font-mono text-[#454652] flex items-center gap-1.5">
-                      <span className="material-symbols-outlined text-[15px] text-[#757684]">call</span>
-                      <span>{nextAppointment.clientPhone}</span>
-                    </div>
-                  )}
-                  <div className="pt-2 border-t border-[#e1e3e4] flex items-center justify-between text-xs">
-                    <span className="font-semibold text-[#24389c]">{nextAppointment.serviceName}</span>
-                    <span className="font-mono font-bold text-[#191c1d]">
-                      ${Number(nextAppointment.price || 0).toLocaleString('es-CO')}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="block text-[11px] font-bold text-[#757684] uppercase tracking-wider">
-                    Acción de Turno:
-                  </label>
-                  <div className="flex flex-col gap-2">
-                    {nextAppointment.status !== 'en_curso' && (
-                      <button
-                        onClick={() => onUpdateReservationStatus(nextAppointment.id, 'en_curso')}
-                        className="w-full py-2.5 bg-[#24389c] hover:bg-[#1d2d7c] text-white rounded-xl text-xs font-bold transition-all shadow-xs flex items-center justify-center gap-2 cursor-pointer"
-                      >
-                        <span className="material-symbols-outlined text-[17px]">play_circle</span>
-                        <span>Iniciar Atención (En Curso)</span>
-                      </button>
-                    )}
-
-                    <button
-                      onClick={() => onUpdateReservationStatus(nextAppointment.id, 'completada')}
-                      className="w-full py-2.5 bg-[#e1f5ec] hover:bg-[#a7f3d0] text-[#047857] border border-[#a7f3d0] rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer"
-                    >
-                      <span className="material-symbols-outlined text-[17px]">check_circle</span>
-                      <span>Marcar como Completada</span>
-                    </button>
-
-                    <button
-                      onClick={() => {
-                        if (window.confirm('¿Deseas cancelar esta cita?')) {
-                          onUpdateReservationStatus(nextAppointment.id, 'cancelada');
-                        }
-                      }}
-                      className="w-full py-2 bg-white hover:bg-[#ffdad6]/40 text-[#ba1a1a] border border-[#ffdad6] rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer"
-                    >
-                      <span className="material-symbols-outlined text-[16px]">cancel</span>
-                      <span>Cancelar Cita</span>
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div className="py-12 text-center text-[#757684] space-y-2">
-                <span className="material-symbols-outlined text-[40px] text-[#bac3ff] block">
-                  check_box
-                </span>
-                <p className="font-semibold text-sm text-[#191c1d]">¡Todo al día!</p>
-                <p className="text-xs">No tienes más citas pendientes para hoy.</p>
-              </div>
-            )}
+          {/* Quick Filter Tabs */}
+          <div className="flex items-center gap-1 bg-[#f3f4f5] p-1 rounded-xl border border-[#e1e3e4] text-xs font-semibold">
+            <button
+              onClick={() => setStatusFilter('todas')}
+              className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+                statusFilter === 'todas'
+                  ? 'bg-white text-[#24389c] font-bold shadow-2xs'
+                  : 'text-[#757684] hover:text-[#191c1d]'
+              }`}
+            >
+              Todas ({todayReservations.length})
+            </button>
+            <button
+              onClick={() => setStatusFilter('pendientes')}
+              className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+                statusFilter === 'pendientes'
+                  ? 'bg-white text-[#24389c] font-bold shadow-2xs'
+                  : 'text-[#757684] hover:text-[#191c1d]'
+              }`}
+            >
+              Pendientes ({todayReservations.filter((r) => r.status === 'pendiente' || r.status === 'confirmada' || r.status === 'en_curso').length})
+            </button>
+            <button
+              onClick={() => setStatusFilter('completadas')}
+              className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+                statusFilter === 'completadas'
+                  ? 'bg-white text-[#24389c] font-bold shadow-2xs'
+                  : 'text-[#757684] hover:text-[#191c1d]'
+              }`}
+            >
+              Completadas ({todayReservations.filter((r) => r.status === 'completada').length})
+            </button>
           </div>
         </div>
 
-        {/* Today's Full Schedule Table */}
-        <div className="lg:col-span-2 bg-white border border-[#e1e3e4] rounded-2xl overflow-hidden shadow-2xs flex flex-col">
-          <div className="p-5 border-b border-[#e1e3e4] flex items-center justify-between">
-            <h3 className="font-bold text-base text-[#191c1d] flex items-center gap-2">
-              <span className="material-symbols-outlined text-[#24389c] text-[20px]">view_timeline</span>
-              <span>Citas de Hoy ({selectedDate})</span>
-            </h3>
-            <span className="text-xs text-[#757684]">
-              Total: <strong>{todayReservations.length}</strong>
-            </span>
-          </div>
-
-          <div className="flex-1 overflow-x-auto">
-            {todayReservations.length === 0 ? (
-              <div className="p-12 text-center text-[#757684] space-y-2">
-                <span className="material-symbols-outlined text-[36px] text-[#bac3ff] block">event_available</span>
-                <p className="font-semibold text-sm text-[#191c1d]">Sin citas programadas para hoy</p>
-                <p className="text-xs">Aprovecha para descansar o agendar nuevos clientes.</p>
+        {/* Highlight Banner for Next Upcoming / Active Appointment if any */}
+        {nextAppointment && (
+          <div className="m-5 p-4 bg-[#f8f9fa] border border-[#bac3ff] rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-3.5">
+              <div className="w-10 h-10 rounded-xl bg-[#dee0ff] text-[#24389c] flex items-center justify-center font-mono font-bold text-xs shrink-0">
+                {nextAppointment.time}
               </div>
-            ) : (
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="border-b border-[#e1e3e4] bg-[#f8f9fa] text-xs font-bold text-[#757684] uppercase tracking-wider">
-                    <th className="py-3 px-4">Hora</th>
-                    <th className="py-3 px-4">Cliente</th>
-                    <th className="py-3 px-4">Servicio</th>
-                    <th className="py-3 px-4">Precio</th>
-                    <th className="py-3 px-4">Estado</th>
-                    <th className="py-3 px-4 text-right">Acciones</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[#e1e3e4] text-xs sm:text-sm">
-                  {todayReservations.map((res, index) => (
-                    <tr
-                      key={res.id}
-                      className={`transition-colors ${
-                        index % 2 === 1 ? 'bg-[#eff1f4]/40' : 'bg-white'
-                      } hover:bg-[#dee0ff]/20`}
-                    >
-                      <td className="py-3 px-4 font-mono font-bold text-[#191c1d] whitespace-nowrap">
-                        {res.time}
-                      </td>
-                      <td className="py-3 px-4 font-semibold text-[#191c1d] whitespace-nowrap">
-                        {res.clientName}
-                      </td>
-                      <td className="py-3 px-4 text-[#454652] whitespace-nowrap">
-                        {res.serviceName}
-                      </td>
-                      <td className="py-3 px-4 font-mono font-bold text-[#24389c] whitespace-nowrap">
-                        ${Number(res.price || 0).toLocaleString('es-CO')}
-                      </td>
-                      <td className="py-3 px-4 whitespace-nowrap">
-                        <span
-                          className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold capitalize ${
-                            res.status === 'confirmada'
-                              ? 'bg-[#e1f5ec] text-[#047857]'
-                              : res.status === 'completada'
-                              ? 'bg-[#dee0ff] text-[#24389c]'
-                              : res.status === 'en_curso'
-                              ? 'bg-[#e0e7ff] text-[#4338ca]'
-                              : res.status === 'cancelada'
-                              ? 'bg-[#ffdad6] text-[#ba1a1a]'
-                              : 'bg-[#ffdcc6] text-[#8f4700]'
-                          }`}
-                        >
-                          {res.status.replace('_', ' ')}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4 text-right whitespace-nowrap">
-                        <div className="flex items-center justify-end gap-1.5">
-                          {res.status !== 'completada' && (
-                            <button
-                              onClick={() => onUpdateReservationStatus(res.id, 'completada')}
-                              className="p-1.5 text-[#047857] hover:bg-[#e1f5ec] rounded-lg transition-colors cursor-pointer"
-                              title="Completar cita"
-                            >
-                              <span className="material-symbols-outlined text-[18px] block">check</span>
-                            </button>
-                          )}
-                          {res.status !== 'en_curso' && res.status !== 'completada' && (
-                            <button
-                              onClick={() => onUpdateReservationStatus(res.id, 'en_curso')}
-                              className="p-1.5 text-[#24389c] hover:bg-[#dee0ff]/60 rounded-lg transition-colors cursor-pointer"
-                              title="Iniciar atención"
-                            >
-                              <span className="material-symbols-outlined text-[18px] block">play_arrow</span>
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] uppercase font-bold px-2 py-0.5 bg-[#24389c] text-white rounded-md">
+                    Próxima Cita
+                  </span>
+                  <span className="font-bold text-sm text-[#191c1d]">{nextAppointment.clientName}</span>
+                  {nextAppointment.clientPhone && (
+                    <span className="text-xs font-mono text-[#757684]">({nextAppointment.clientPhone})</span>
+                  )}
+                </div>
+                <div className="text-xs text-[#454652] mt-0.5">
+                  {nextAppointment.serviceName} • <strong className="text-[#191c1d]">${Number(nextAppointment.price || 0).toLocaleString('es-CO')}</strong>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0">
+              {nextAppointment.status !== 'en_curso' && (
+                <button
+                  onClick={() => onUpdateReservationStatus(nextAppointment.id, 'en_curso')}
+                  className="px-3.5 py-1.5 bg-[#24389c] hover:bg-[#1d2d7c] text-white rounded-lg text-xs font-bold transition-colors cursor-pointer shadow-xs"
+                >
+                  Iniciar Atención
+                </button>
+              )}
+              <button
+                onClick={() => onUpdateReservationStatus(nextAppointment.id, 'completada')}
+                className="px-3.5 py-1.5 bg-[#e1f5ec] hover:bg-[#a7f3d0] text-[#047857] border border-[#a7f3d0] rounded-lg text-xs font-bold transition-colors cursor-pointer"
+              >
+                Completar
+              </button>
+              <button
+                onClick={() => {
+                  if (window.confirm('¿Deseas cancelar esta cita?')) {
+                    onUpdateReservationStatus(nextAppointment.id, 'cancelada');
+                  }
+                }}
+                className="px-3 py-1.5 bg-white hover:bg-[#ffdad6]/40 text-[#ba1a1a] border border-[#ffdad6] rounded-lg text-xs font-semibold transition-colors cursor-pointer"
+              >
+                Cancelar
+              </button>
+            </div>
           </div>
+        )}
+
+        {/* Schedule Table */}
+        <div className="overflow-x-auto">
+          {displayedReservations.length === 0 ? (
+            <div className="py-14 text-center text-[#757684] space-y-2">
+              <span className="material-symbols-outlined text-[36px] text-[#bac3ff] block">event_available</span>
+              <p className="font-semibold text-sm text-[#191c1d]">No hay citas en este filtro para hoy</p>
+              <p className="text-xs">Usa el botón "Agendar Cita" para programar una nueva reserva.</p>
+            </div>
+          ) : (
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="border-b border-[#e1e3e4] bg-[#f8f9fa] text-xs font-bold text-[#757684] uppercase tracking-wider">
+                  <th className="py-3 px-5">Hora</th>
+                  <th className="py-3 px-5">Cliente</th>
+                  <th className="py-3 px-5">Servicio</th>
+                  <th className="py-3 px-5">Precio</th>
+                  <th className="py-3 px-5">Estado</th>
+                  <th className="py-3 px-5 text-right">Acciones</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[#e1e3e4] text-xs sm:text-sm">
+                {displayedReservations.map((res, index) => (
+                  <tr
+                    key={res.id}
+                    className={`transition-colors ${
+                      index % 2 === 1 ? 'bg-[#eff1f4]/40' : 'bg-white'
+                    } hover:bg-[#dee0ff]/20`}
+                  >
+                    <td className="py-3.5 px-5 font-mono font-bold text-[#191c1d] whitespace-nowrap">
+                      {res.time}
+                    </td>
+                    <td className="py-3.5 px-5 font-semibold text-[#191c1d] whitespace-nowrap">
+                      {res.clientName}
+                    </td>
+                    <td className="py-3.5 px-5 text-[#454652] whitespace-nowrap">
+                      {res.serviceName}
+                    </td>
+                    <td className="py-3.5 px-5 font-mono font-bold text-[#24389c] whitespace-nowrap">
+                      ${Number(res.price || 0).toLocaleString('es-CO')}
+                    </td>
+                    <td className="py-3.5 px-5 whitespace-nowrap">
+                      <span
+                        className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold capitalize ${
+                          res.status === 'confirmada'
+                            ? 'bg-[#e1f5ec] text-[#047857]'
+                            : res.status === 'completada'
+                            ? 'bg-[#dee0ff] text-[#24389c]'
+                            : res.status === 'en_curso'
+                            ? 'bg-[#e0e7ff] text-[#4338ca]'
+                            : res.status === 'cancelada'
+                            ? 'bg-[#ffdad6] text-[#ba1a1a]'
+                            : 'bg-[#ffdcc6] text-[#8f4700]'
+                        }`}
+                      >
+                        {res.status.replace('_', ' ')}
+                      </span>
+                    </td>
+                    <td className="py-3.5 px-5 text-right whitespace-nowrap">
+                      <div className="flex items-center justify-end gap-1.5">
+                        {res.status !== 'completada' && (
+                          <button
+                            onClick={() => onUpdateReservationStatus(res.id, 'completada')}
+                            className="px-2.5 py-1 bg-[#e1f5ec] hover:bg-[#a7f3d0] text-[#047857] rounded-lg text-xs font-semibold transition-colors cursor-pointer"
+                            title="Completar cita"
+                          >
+                            Completar
+                          </button>
+                        )}
+                        {res.status !== 'en_curso' && res.status !== 'completada' && (
+                          <button
+                            onClick={() => onUpdateReservationStatus(res.id, 'en_curso')}
+                            className="px-2.5 py-1 bg-[#24389c] hover:bg-[#1d2d7c] text-white rounded-lg text-xs font-semibold transition-colors cursor-pointer"
+                            title="Iniciar atención"
+                          >
+                            Atender
+                          </button>
+                        )}
+                        {res.status !== 'cancelada' && res.status !== 'completada' && (
+                          <button
+                            onClick={() => {
+                              if (window.confirm('¿Deseas cancelar esta cita?')) {
+                                onUpdateReservationStatus(res.id, 'cancelada');
+                              }
+                            }}
+                            className="px-2.5 py-1 bg-white hover:bg-[#ffdad6]/40 text-[#ba1a1a] border border-[#ffdad6] rounded-lg text-xs font-semibold transition-colors cursor-pointer"
+                            title="Cancelar cita"
+                          >
+                            Cancelar
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </div>
       </div>
     </div>
