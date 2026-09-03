@@ -19,9 +19,25 @@ export const ReservationDetailsModal: React.FC<ReservationDetailsModalProps> = (
   if (!reservation) return null;
 
   const [selectedStatus, setSelectedStatus] = useState<ReservationStatus>(reservation.status);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
 
   const handleStatusSave = () => {
     onUpdateStatus(reservation.id, selectedStatus);
+    onClose();
+  };
+
+  const handleConfirmDelete = () => {
+    if (onDeleteReservation) {
+      onDeleteReservation(reservation.id);
+    }
+    setShowDeleteConfirm(false);
+    onClose();
+  };
+
+  const handleConfirmCancel = () => {
+    onCancelReservation(reservation);
+    setShowCancelConfirm(false);
     onClose();
   };
 
@@ -62,7 +78,7 @@ export const ReservationDetailsModal: React.FC<ReservationDetailsModalProps> = (
 
   return (
     <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4 backdrop-blur-xs">
-      <div className="bg-white rounded-2xl max-w-lg w-full p-6 sm:p-7 shadow-2xl border border-[#e1e3e4] animate-in fade-in zoom-in-95 duration-150">
+      <div className="bg-white rounded-2xl max-w-lg w-full p-6 sm:p-7 shadow-2xl border border-[#e1e3e4] animate-in fade-in zoom-in-95 duration-150 relative">
         {/* Header without ID */}
         <div className="flex justify-between items-center pb-4 border-b border-[#e1e3e4] mb-5">
           <div className="flex items-center gap-3">
@@ -94,25 +110,35 @@ export const ReservationDetailsModal: React.FC<ReservationDetailsModalProps> = (
             <div>{getStatusBadge(reservation.status)}</div>
           </div>
 
-          {/* Separated Info Blocks: Fecha/Hora, Duración, Tarifa */}
-          <div className="grid grid-cols-3 gap-2.5 text-xs">
+          {/* 4 Fully Separated Metric Blocks: Fecha, Hora, Duración, Tarifa */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-xs">
+            {/* 1. Fecha */}
             <div className="p-3 bg-[#f8f9fa] rounded-xl border border-[#e1e3e4] flex flex-col justify-between">
-              <span className="text-[#757684] block font-semibold text-[11px] uppercase tracking-wider">Fecha y Hora</span>
+              <span className="text-[#757684] block font-semibold text-[10px] sm:text-[11px] uppercase tracking-wider">Fecha</span>
               <span className="font-bold text-[#191c1d] text-xs sm:text-sm mt-1 block font-mono">
-                {reservation.date} <br />
-                <span className="text-[#24389c]">{reservation.time}</span>
+                {reservation.date}
               </span>
             </div>
 
+            {/* 2. Hora */}
             <div className="p-3 bg-[#f8f9fa] rounded-xl border border-[#e1e3e4] flex flex-col justify-between">
-              <span className="text-[#757684] block font-semibold text-[11px] uppercase tracking-wider">Duración</span>
+              <span className="text-[#757684] block font-semibold text-[10px] sm:text-[11px] uppercase tracking-wider">Hora</span>
+              <span className="font-bold text-[#24389c] text-xs sm:text-sm mt-1 block font-mono">
+                {reservation.time}
+              </span>
+            </div>
+
+            {/* 3. Duración */}
+            <div className="p-3 bg-[#f8f9fa] rounded-xl border border-[#e1e3e4] flex flex-col justify-between">
+              <span className="text-[#757684] block font-semibold text-[10px] sm:text-[11px] uppercase tracking-wider">Duración</span>
               <span className="font-bold text-[#191c1d] text-xs sm:text-sm mt-1 block">
                 {reservation.durationMinutes} min
               </span>
             </div>
 
+            {/* 4. Tarifa */}
             <div className="p-3 bg-[#f8f9fa] rounded-xl border border-[#e1e3e4] flex flex-col justify-between">
-              <span className="text-[#757684] block font-semibold text-[11px] uppercase tracking-wider">Tarifa</span>
+              <span className="text-[#757684] block font-semibold text-[10px] sm:text-[11px] uppercase tracking-wider">Tarifa</span>
               <span className="font-bold text-[#24389c] text-xs sm:text-sm mt-1 block font-mono">
                 ${Number(reservation.price || 0).toLocaleString('es-CO')}
               </span>
@@ -163,20 +189,15 @@ export const ReservationDetailsModal: React.FC<ReservationDetailsModalProps> = (
           </div>
         </div>
 
-        {/* Footer Action Buttons */}
+        {/* Footer Action Buttons with exact symmetric sizing */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-5 mt-5 border-t border-[#e1e3e4]">
           {/* Left: Delete permanent action */}
           <div>
             {onDeleteReservation && (
               <button
                 type="button"
-                onClick={() => {
-                  if (window.confirm(`¿Estás seguro de eliminar permanentemente esta reserva de ${reservation.clientName}?`)) {
-                    onDeleteReservation(reservation.id);
-                    onClose();
-                  }
-                }}
-                className="px-3 py-2 text-xs text-[#757684] hover:text-[#ba1a1a] hover:bg-[#ffdad6]/40 rounded-xl font-medium flex items-center gap-1.5 transition-colors cursor-pointer"
+                onClick={() => setShowDeleteConfirm(true)}
+                className="h-10 px-3.5 inline-flex items-center justify-center gap-1.5 text-xs text-[#757684] hover:text-[#ba1a1a] hover:bg-[#ffdad6]/40 rounded-xl font-medium transition-colors cursor-pointer"
                 title="Eliminar registro permanentemente"
               >
                 <span className="material-symbols-outlined text-[17px]">delete</span>
@@ -185,19 +206,13 @@ export const ReservationDetailsModal: React.FC<ReservationDetailsModalProps> = (
             )}
           </div>
 
-          {/* Right: Cancel Appointment and Save Actions */}
+          {/* Right: Cancel Appointment and Save Actions - Exact proportional dimensions */}
           <div className="flex items-center gap-2.5 w-full sm:w-auto justify-end">
-
             {reservation.status !== 'cancelada' && (
               <button
                 type="button"
-                onClick={() => {
-                  if (window.confirm(`¿Deseas cancelar la cita de ${reservation.clientName}?`)) {
-                    onCancelReservation(reservation);
-                    onClose();
-                  }
-                }}
-                className="px-3.5 py-2 bg-[#ffdad6]/60 text-[#ba1a1a] hover:bg-[#ffdad6] border border-[#ffdad6] rounded-xl text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5"
+                onClick={() => setShowCancelConfirm(true)}
+                className="h-10 px-4 inline-flex items-center justify-center gap-1.5 bg-[#ffdad6]/60 text-[#ba1a1a] hover:bg-[#ffdad6] border border-[#ffdad6] rounded-xl text-xs font-bold transition-all cursor-pointer active:scale-[0.98] shadow-2xs"
               >
                 <span className="material-symbols-outlined text-[16px]">cancel</span>
                 <span>Cancelar Cita</span>
@@ -207,12 +222,83 @@ export const ReservationDetailsModal: React.FC<ReservationDetailsModalProps> = (
             <button
               type="button"
               onClick={handleStatusSave}
-              className="px-4 py-2 bg-[#24389c] hover:bg-[#1d2d7c] text-white font-bold rounded-xl text-xs shadow-xs transition-colors cursor-pointer"
+              className="h-10 px-5 inline-flex items-center justify-center gap-1.5 bg-[#24389c] hover:bg-[#1d2d7c] text-white font-bold rounded-xl text-xs shadow-2xs transition-all cursor-pointer active:scale-[0.98]"
             >
-              Guardar Estado
+              <span className="material-symbols-outlined text-[16px]">check</span>
+              <span>Guardar Estado</span>
             </button>
           </div>
         </div>
+
+        {/* 1. CUSTOM DELETE CONFIRMATION POPUP */}
+        {showDeleteConfirm && (
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-xs rounded-2xl flex items-center justify-center p-5 z-20 animate-in fade-in zoom-in-95 duration-150">
+            <div className="bg-white rounded-2xl p-6 shadow-2xl border border-[#e1e3e4] max-w-sm w-full text-center">
+              <div className="w-12 h-12 rounded-full bg-[#ffdad6] text-[#ba1a1a] flex items-center justify-center mx-auto mb-3.5">
+                <span className="material-symbols-outlined text-[26px]">delete_forever</span>
+              </div>
+              <h4 className="text-base font-bold text-[#191c1d] mb-1.5">
+                ¿Eliminar esta reserva?
+              </h4>
+              <p className="text-xs text-[#454652] leading-relaxed mb-5">
+                Esta acción eliminará de forma permanente la cita de{' '}
+                <strong className="text-[#191c1d]">{reservation.clientName}</strong> de la base de datos. No se podrá recuperar.
+              </p>
+              <div className="flex items-center justify-center gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setShowDeleteConfirm(false)}
+                  className="flex-1 h-10 px-4 border border-[#e1e3e4] hover:bg-[#f3f4f5] text-[#454652] rounded-xl text-xs font-bold transition-colors cursor-pointer"
+                >
+                  Volver
+                </button>
+                <button
+                  type="button"
+                  onClick={handleConfirmDelete}
+                  className="flex-1 h-10 px-4 bg-[#ba1a1a] hover:bg-[#93000a] text-white rounded-xl text-xs font-bold transition-colors shadow-xs cursor-pointer flex items-center justify-center gap-1"
+                >
+                  <span className="material-symbols-outlined text-[16px]">delete</span>
+                  <span>Sí, Eliminar</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 2. CUSTOM CANCEL APPOINTMENT CONFIRMATION POPUP */}
+        {showCancelConfirm && (
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-xs rounded-2xl flex items-center justify-center p-5 z-20 animate-in fade-in zoom-in-95 duration-150">
+            <div className="bg-white rounded-2xl p-6 shadow-2xl border border-[#e1e3e4] max-w-sm w-full text-center">
+              <div className="w-12 h-12 rounded-full bg-[#ffdcc6] text-[#6c3400] flex items-center justify-center mx-auto mb-3.5">
+                <span className="material-symbols-outlined text-[26px]">event_busy</span>
+              </div>
+              <h4 className="text-base font-bold text-[#191c1d] mb-1.5">
+                ¿Cancelar esta cita?
+              </h4>
+              <p className="text-xs text-[#454652] leading-relaxed mb-5">
+                La cita de <strong className="text-[#191c1d]">{reservation.clientName}</strong> cambiará su estado a{' '}
+                <span className="text-[#ba1a1a] font-semibold">Cancelada</span> y se liberará el horario del profesional.
+              </p>
+              <div className="flex items-center justify-center gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setShowCancelConfirm(false)}
+                  className="flex-1 h-10 px-4 border border-[#e1e3e4] hover:bg-[#f3f4f5] text-[#454652] rounded-xl text-xs font-bold transition-colors cursor-pointer"
+                >
+                  Volver
+                </button>
+                <button
+                  type="button"
+                  onClick={handleConfirmCancel}
+                  className="flex-1 h-10 px-4 bg-[#ba1a1a] hover:bg-[#93000a] text-white rounded-xl text-xs font-bold transition-colors shadow-xs cursor-pointer flex items-center justify-center gap-1"
+                >
+                  <span className="material-symbols-outlined text-[16px]">check</span>
+                  <span>Confirmar</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
