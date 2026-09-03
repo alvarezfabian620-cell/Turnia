@@ -35,6 +35,8 @@ export const CalendarioView: React.FC<CalendarioViewProps> = ({
     const days = [];
     const dayNames = ['LUN', 'MAR', 'MIÉ', 'JUE', 'VIE', 'SÁB', 'DOM'];
 
+    const monthShortNames = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+
     for (let i = 0; i < 7; i++) {
       const d = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + i);
       const isToday =
@@ -51,6 +53,7 @@ export const CalendarioView: React.FC<CalendarioViewProps> = ({
         name: dayNames[i],
         dateNum: d.getDate(),
         month: d.getMonth(),
+        monthShort: monthShortNames[d.getMonth()],
         year: d.getFullYear(),
         fullDate,
         isToday,
@@ -209,7 +212,10 @@ export const CalendarioView: React.FC<CalendarioViewProps> = ({
                 d.isToday ? 'bg-[#dee0ff]/40' : ''
               }`}
             >
-              <div className="text-[11px] font-bold text-[#757684] uppercase tracking-wider">{d.name}</div>
+              <div className="text-[11px] font-bold text-[#757684] uppercase tracking-wider flex items-center justify-center gap-1">
+                <span>{d.name}</span>
+                <span className="text-[10px] font-semibold lowercase text-[#9294a0]">({d.monthShort})</span>
+              </div>
               <div
                 className={`text-sm font-black mt-0.5 inline-flex items-center justify-center w-7 h-7 rounded-full ${
                   d.isToday ? 'bg-[#24389c] text-white shadow-2xs' : 'text-[#191c1d]'
