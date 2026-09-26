@@ -43,42 +43,32 @@ export const ClientePortalView: React.FC<ClientePortalViewProps> = ({
 
   return (
     <div className="space-y-6 max-w-6xl mx-auto">
-      {/* Header Section */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      {/* Unified Elegant Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#e1e3e4]">
         <div>
           <h2 className="text-2xl md:text-[28px] font-bold text-[#191c1d] tracking-tight">
             Hola, {currentUser.name}
           </h2>
-          <p className="text-[#454652] text-sm mt-1">
-            Bienvenido a {businessConfig.name || 'nuestro centro'}. Explora los servicios disponibles o gestiona tus citas.
+          <p className="text-[#5f6368] text-sm mt-1">
+            Explora los servicios disponibles y agenda tu próxima cita en segundos.
           </p>
         </div>
 
-        {activeReservations.length > 0 && (
-          <div className="flex items-center gap-2 px-3.5 py-2 bg-white border border-[#e1e3e4] rounded-xl text-xs text-[#454652] shadow-2xs">
-            <span className="w-2 h-2 rounded-full bg-[#24389c]" />
-            <span>Citas activas: <strong className="text-[#191c1d]">{activeReservations.length}</strong></span>
-          </div>
-        )}
+        <div className="flex items-center gap-2.5">
+          <span className="text-xs text-[#5f6368] bg-white border border-[#e1e3e4] px-3.5 py-2 rounded-xl shadow-2xs font-medium">
+            Servicios disponibles: <strong className="text-[#24389c] font-bold">{activeServices.length}</strong>
+          </span>
+          {activeReservations.length > 0 && (
+            <div className="flex items-center gap-2 px-3.5 py-2 bg-[#e1f5ec] text-[#047857] border border-[#a7f3d0] rounded-xl text-xs font-semibold shadow-2xs">
+              <span className="w-2 h-2 rounded-full bg-[#047857]" />
+              <span>{activeReservations.length} {activeReservations.length === 1 ? 'cita activa' : 'citas activas'}</span>
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* 1. MAIN SECTION: CATÁLOGO DE SERVICIOS DISPONIBLES */}
+      {/* 1. MAIN SECTION: CATÁLOGO DE SERVICIOS */}
       <div className="space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-          <div>
-            <h3 className="font-bold text-xl text-[#191c1d] tracking-tight">
-              Catálogo de Servicios Disponibles
-            </h3>
-            <p className="text-xs text-[#757684] mt-0.5">
-              Haz clic en cualquier servicio para solicitar tu reserva de inmediato.
-            </p>
-          </div>
-
-          <span className="text-xs text-[#757684]">
-            Total disponibles: <strong className="text-[#24389c]">{activeServices.length}</strong>
-          </span>
-        </div>
-
         {/* Services Grid (Max 2 rows before smooth internal scroll) */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-[460px] overflow-y-auto pr-1.5 scroll-smooth">
           {activeServices.map((service) => (
