@@ -130,7 +130,7 @@ export async function initDatabase(): Promise<mysql.Pool> {
   await tempConnection.query(`CREATE DATABASE IF NOT EXISTS \`${DB_NAME}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;`);
   await tempConnection.end();
 
-  // 2. Create connection pool to turnia_db
+  // 2. Create optimized enterprise connection pool to turnia_db
   pool = mysql.createPool({
     host: DB_HOST,
     user: DB_USER,
@@ -138,11 +138,13 @@ export async function initDatabase(): Promise<mysql.Pool> {
     port: DB_PORT,
     database: DB_NAME,
     waitForConnections: true,
-    connectionLimit: 15,
+    connectionLimit: 25,
     queueLimit: 0,
+    enableKeepAlive: true,
+    keepAliveInitialDelay: 10000,
   });
 
-  // 3. Create Tables
+  // 3. Create Tables with optimized engines
   await pool.query(`
     CREATE TABLE IF NOT EXISTS users (
       id VARCHAR(100) PRIMARY KEY,
@@ -156,8 +158,10 @@ export async function initDatabase(): Promise<mysql.Pool> {
       lock_until VARCHAR(50) NULL,
       reset_token VARCHAR(255) NULL,
       reset_token_expiry VARCHAR(50) NULL,
+      terms_accepted TINYINT(1) DEFAULT 1,
+      terms_accepted_at VARCHAR(50) NULL,
       created_at VARCHAR(50) NOT NULL
-    ) ENGINE=InnoDB;
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
   `);
 
   // Safe migrations for newly added columns
@@ -166,6 +170,12 @@ export async function initDatabase(): Promise<mysql.Pool> {
   } catch (_) {}
   try {
     await pool.query('ALTER TABLE users ADD COLUMN client_id VARCHAR(100) NULL');
+  } catch (_) {}
+  try {
+    await pool.query('ALTER TABLE users ADD COLUMN terms_accepted TINYINT(1) DEFAULT 1');
+  } catch (_) {}
+  try {
+    await pool.query('ALTER TABLE users ADD COLUMN terms_accepted_at VARCHAR(50) NULL');
   } catch (_) {}
 
   await pool.query(`
@@ -181,7 +191,7 @@ export async function initDatabase(): Promise<mysql.Pool> {
       accept_new_bookings TINYINT(1) DEFAULT 1,
       show_prices_publicly TINYINT(1) DEFAULT 1,
       time_zone VARCHAR(100) DEFAULT 'America/Bogota'
-    ) ENGINE=InnoDB;
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
   `);
 
   await pool.query(`
@@ -193,7 +203,7 @@ export async function initDatabase(): Promise<mysql.Pool> {
       price DECIMAL(12, 2) NOT NULL DEFAULT 0.00,
       active TINYINT(1) DEFAULT 1,
       category VARCHAR(100) NOT NULL
-    ) ENGINE=InnoDB;
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
   `);
 
   await pool.query(`
@@ -207,7 +217,7 @@ export async function initDatabase(): Promise<mysql.Pool> {
       email VARCHAR(255),
       phone VARCHAR(50),
       specialties TEXT
-    ) ENGINE=InnoDB;
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
   `);
 
   await pool.query(`
@@ -219,7 +229,7 @@ export async function initDatabase(): Promise<mysql.Pool> {
       total_visits INT DEFAULT 0,
       last_visit VARCHAR(50),
       notes TEXT
-    ) ENGINE=InnoDB;
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
   `);
 
   await pool.query(`
@@ -240,7 +250,7 @@ export async function initDatabase(): Promise<mysql.Pool> {
       status VARCHAR(50) NOT NULL DEFAULT 'confirmada',
       notes TEXT,
       created_at VARCHAR(50) NOT NULL
-    ) ENGINE=InnoDB;
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
   `);
 
   await pool.query(`
@@ -249,7 +259,7 @@ export async function initDatabase(): Promise<mysql.Pool> {
       day_name VARCHAR(50) NOT NULL,
       active TINYINT(1) DEFAULT 1,
       blocks TEXT NOT NULL
-    ) ENGINE=InnoDB;
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
   `);
 
   await pool.query(`
@@ -261,8 +271,28 @@ export async function initDatabase(): Promise<mysql.Pool> {
       type VARCHAR(50) NOT NULL,
       amount DECIMAL(12, 2),
       timestamp VARCHAR(50) NOT NULL
-    ) ENGINE=InnoDB;
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
   `);
+
+  // 4. High-Performance B-Tree Indexes for 1M+ Scale
+  const createIndexSafe = async (tableName: string, indexName: string, columns: string) => {
+    try {
+      await pool.query(`CREATE INDEX \`${indexName}\` ON \`${tableName}\` (${columns})`);
+    } catch (_) {
+      // Index already exists
+    }
+  };
+
+  await createIndexSafe('reservations', 'idx_reservations_date_status', 'date, status');
+  await createIndexSafe('reservations', 'idx_reservations_client_email', 'client_email');
+  await createIndexSafe('reservations', 'idx_reservations_prof_date', 'professional_id, date');
+  await createIndexSafe('reservations', 'idx_reservations_status', 'status');
+  await createIndexSafe('reservations', 'idx_reservations_created_at', 'created_at');
+  await createIndexSafe('clients', 'idx_clients_email', 'email');
+  await createIndexSafe('clients', 'idx_clients_phone', 'phone');
+  await createIndexSafe('users', 'idx_users_role', 'role');
+  await createIndexSafe('services', 'idx_services_active_cat', 'active, category');
+  await createIndexSafe('activities', 'idx_activities_timestamp', 'timestamp');
 
   // 4. Seed default Users for all 3 Roles
   const defaultPasswordHash = bcrypt.hashSync('Turnia2026!', 10);

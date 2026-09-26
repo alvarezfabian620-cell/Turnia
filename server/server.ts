@@ -13,13 +13,50 @@ import { activitiesRouter } from './routes/activities.js';
 import { reportsRouter } from './routes/reports.js';
 import { authRouter } from './routes/auth.js';
 
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
+
 const app = express();
 const server = http.createServer(app);
 const PORT = process.env.PORT || 3001;
 
-// Middlewares
+// 1. Enterprise Security Headers (Helmet)
+app.use(
+  helmet({
+    contentSecurityPolicy: false, // Allows flexible CDN & dev scripts
+    crossOriginResourcePolicy: { policy: 'cross-origin' },
+  })
+);
+
+// 2. CORS & Payload sanitization
 app.use(cors());
-app.use(express.json({ limit: '10mb' }));
+app.use(express.json({ limit: '2mb' }));
+
+// 3. Rate Limiting Protection (Anti-DDoS & Anti-Bruteforce)
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutos
+  max: 30, // Max 30 peticiones de autenticación por IP en 15 min
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    error: 'Demasiadas solicitudes de autenticación desde esta IP. Por favor intenta nuevamente en 15 minutos.',
+  },
+});
+
+const globalApiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutos
+  max: 1000, // Max 1000 peticiones generales por IP
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    error: 'Límite de solicitudes de API excedido. Por favor intenta más tarde.',
+  },
+});
+
+app.use('/api/', globalApiLimiter);
+app.use('/api/auth/login', authLimiter);
+app.use('/api/auth/register', authLimiter);
+app.use('/api/auth/forgot-password', authLimiter);
 
 // API Routes
 app.use('/api/auth', authRouter);

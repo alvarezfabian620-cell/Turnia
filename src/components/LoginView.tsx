@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { api } from '../services/api';
 import { AuthUser } from '../types';
+import { LegalTermsModal } from './LegalTermsModal';
 
 interface LoginViewProps {
   onLoginSuccess: (user: AuthUser, token: string, rememberMe: boolean) => void;
@@ -46,6 +47,7 @@ export const LoginView: React.FC<LoginViewProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [showLegalModal, setShowLegalModal] = useState(false);
 
   // Forgot Password Flow States
   const [showForgotModal, setShowForgotModal] = useState(false);
@@ -459,6 +461,27 @@ export const LoginView: React.FC<LoginViewProps> = ({
                   </div>
                 </div>
 
+                {/* Habeas Data & Terms Checkbox */}
+                <div className="flex items-start gap-2 pt-1 text-xs text-[#454652]">
+                  <input
+                    type="checkbox"
+                    id="termsConsent"
+                    required
+                    defaultChecked
+                    className="mt-0.5 rounded border-[#e1e3e4] text-[#24389c] focus:ring-[#24389c] cursor-pointer"
+                  />
+                  <label htmlFor="termsConsent" className="leading-snug">
+                    Acepto los{' '}
+                    <button
+                      type="button"
+                      onClick={() => setShowLegalModal(true)}
+                      className="text-[#24389c] underline font-bold hover:text-[#1e2b82] cursor-pointer"
+                    >
+                      Términos de Servicio y la Política de Protección de Datos (Habeas Data)
+                    </button>.
+                  </label>
+                </div>
+
                 {/* Submit Register */}
                 <button
                   type="submit"
@@ -476,6 +499,11 @@ export const LoginView: React.FC<LoginViewProps> = ({
                 </button>
               </form>
             )}
+
+            <LegalTermsModal
+              isOpen={showLegalModal}
+              onClose={() => setShowLegalModal(false)}
+            />
 
             {/* Toggle between Login and Register */}
             <div className="mt-5 pt-3 border-t border-[#f3f4f5] text-center">

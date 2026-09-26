@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import confetti from 'canvas-confetti';
 import { Reservation, Professional, ServiceItem, DaySchedule, AuthUser, ClientItem } from '../types';
+import { LegalTermsModal } from './LegalTermsModal';
 
 interface NewReservationModalProps {
   isOpen: boolean;
@@ -56,6 +57,7 @@ export const NewReservationModal: React.FC<NewReservationModalProps> = ({
   const [time, setTime] = useState(getSuggestedTime());
   const [status, setStatus] = useState<Reservation['status']>(isClientRole ? 'pendiente' : 'confirmada');
   const [notes, setNotes] = useState('');
+  const [isLegalModalOpen, setIsLegalModalOpen] = useState(false);
 
   const todayStr = getTodayStr();
   const currentTimeStr = getCurrentTimeStr();
@@ -430,6 +432,21 @@ export const NewReservationModal: React.FC<NewReservationModalProps> = ({
             </div>
           </div>
 
+          {/* Legal Compliance & Habeas Data Notice */}
+          <div className="text-[11px] text-[#757684] flex items-start gap-2 bg-[#f8f9fa] p-2.5 rounded-xl border border-[#e1e3e4]">
+            <span className="material-symbols-outlined text-[16px] text-[#24389c] shrink-0 mt-0.5">verified_user</span>
+            <span>
+              Al continuar, autorizas el tratamiento de tus datos para la gestión de tu cita de acuerdo a nuestra{' '}
+              <button
+                type="button"
+                onClick={() => setIsLegalModalOpen(true)}
+                className="text-[#24389c] underline font-semibold hover:text-[#1d2d7c] cursor-pointer"
+              >
+                Política de Protección de Datos (Ley 1581 / Habeas Data)
+              </button>.
+            </span>
+          </div>
+
           {/* Footer Action Buttons */}
           <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-[#e1e3e4]">
             <button
@@ -453,6 +470,11 @@ export const NewReservationModal: React.FC<NewReservationModalProps> = ({
             </button>
           </div>
         </form>
+
+        <LegalTermsModal
+          isOpen={isLegalModalOpen}
+          onClose={() => setIsLegalModalOpen(false)}
+        />
       </div>
     </div>
   );
