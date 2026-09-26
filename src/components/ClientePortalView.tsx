@@ -63,12 +63,11 @@ export const ClientePortalView: React.FC<ClientePortalViewProps> = ({
       </div>
 
       {/* 1. MAIN SECTION: CATÁLOGO DE SERVICIOS DISPONIBLES */}
-      <div className="bg-white border border-[#e1e3e4] rounded-2xl p-6 shadow-2xs space-y-5">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#e1e3e4] pb-4">
+      <div className="space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div>
-            <h3 className="font-bold text-xl text-[#191c1d] flex items-center gap-2 tracking-tight">
-              <span className="material-symbols-outlined text-[#24389c] text-[24px]">content_cut</span>
-              <span>Catálogo de Servicios Disponibles</span>
+            <h3 className="font-bold text-xl text-[#191c1d] tracking-tight">
+              Catálogo de Servicios Disponibles
             </h3>
             <p className="text-xs text-[#757684] mt-0.5">
               Haz clic en cualquier servicio para solicitar tu reserva de inmediato.
@@ -139,9 +138,8 @@ export const ClientePortalView: React.FC<ClientePortalViewProps> = ({
       <div className="bg-white border border-[#e1e3e4] rounded-2xl p-6 shadow-2xs space-y-5">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#e1e3e4] pb-4">
           <div>
-            <h3 className="font-bold text-xl text-[#191c1d] flex items-center gap-2 tracking-tight">
-              <span className="material-symbols-outlined text-[#24389c] text-[24px]">event_available</span>
-              <span>Mis Citas y Solicitudes</span>
+            <h3 className="font-bold text-xl text-[#191c1d] tracking-tight">
+              Mis Citas y Solicitudes
             </h3>
             <p className="text-xs text-[#757684] mt-0.5">
               Consulta en tiempo real el estado de tus citas (Pendiente, Confirmada, etc.).
