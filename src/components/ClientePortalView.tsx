@@ -14,11 +14,10 @@ export const ClientePortalView: React.FC<ClientePortalViewProps> = ({
   currentUser,
   reservations,
   services,
-  businessConfig,
   onOpenNewBooking,
   onCancelReservation,
 }) => {
-  const [tabMode, setTabMode] = useState<'activas' | 'historial'>('activas');
+  const [filterMode, setFilterMode] = useState<'todas' | 'activas' | 'historial'>('todas');
 
   // Filter appointments for this client
   const myReservations = reservations.filter((r) => {
@@ -39,10 +38,17 @@ export const ClientePortalView: React.FC<ClientePortalViewProps> = ({
     (r) => r.status === 'completada' || r.status === 'cancelada'
   );
 
+  const displayedReservations =
+    filterMode === 'activas'
+      ? activeReservations
+      : filterMode === 'historial'
+      ? pastReservations
+      : myReservations;
+
   const activeServices = services.filter((s) => s.active);
 
   return (
-    <div className="space-y-6 max-w-6xl mx-auto">
+    <div className="space-y-8 max-w-6xl mx-auto">
       {/* Unified Elegant Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#e1e3e4]">
         <div>
@@ -124,177 +130,148 @@ export const ClientePortalView: React.FC<ClientePortalViewProps> = ({
         </div>
       </div>
 
-      {/* 2. SECTION: MIS CITAS Y ESTADO DE SOLICITUDES */}
-      <div className="bg-white border border-[#e1e3e4] rounded-2xl p-6 shadow-2xs space-y-5">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#e1e3e4] pb-4">
+      {/* 2. SECTION: MIS CITAS Y SOLICITUDES (TABLA COMPLETA) */}
+      <div className="bg-white border border-[#e1e3e4] rounded-2xl shadow-2xs overflow-hidden">
+        <div className="p-5 border-b border-[#e1e3e4] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h3 className="font-bold text-xl text-[#191c1d] tracking-tight">
+            <h3 className="font-bold text-lg text-[#191c1d] tracking-tight">
               Mis Citas y Solicitudes
             </h3>
             <p className="text-xs text-[#757684] mt-0.5">
-              Consulta en tiempo real el estado de tus citas (Pendiente, Confirmada, etc.).
+              Consulta en tiempo real el estado y detalle de tus citas agendadas.
             </p>
           </div>
 
           <div className="flex items-center gap-1 bg-[#f3f4f5] p-1 rounded-xl border border-[#e1e3e4] text-xs font-bold">
             <button
-              onClick={() => setTabMode('activas')}
-              className={`px-3.5 py-1.5 rounded-lg transition-all cursor-pointer ${
-                tabMode === 'activas'
+              onClick={() => setFilterMode('todas')}
+              className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+                filterMode === 'todas'
                   ? 'bg-white text-[#24389c] shadow-2xs'
                   : 'text-[#757684] hover:text-[#191c1d]'
               }`}
             >
-              Citas Activas ({activeReservations.length})
+              Todas ({myReservations.length})
             </button>
             <button
-              onClick={() => setTabMode('historial')}
-              className={`px-3.5 py-1.5 rounded-lg transition-all cursor-pointer ${
-                tabMode === 'historial'
+              onClick={() => setFilterMode('activas')}
+              className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+                filterMode === 'activas'
                   ? 'bg-white text-[#24389c] shadow-2xs'
                   : 'text-[#757684] hover:text-[#191c1d]'
               }`}
             >
-              Historial Pasado ({pastReservations.length})
+              Activas ({activeReservations.length})
+            </button>
+            <button
+              onClick={() => setFilterMode('historial')}
+              className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+                filterMode === 'historial'
+                  ? 'bg-white text-[#24389c] shadow-2xs'
+                  : 'text-[#757684] hover:text-[#191c1d]'
+              }`}
+            >
+              Historial ({pastReservations.length})
             </button>
           </div>
         </div>
 
-        {tabMode === 'activas' && (
-          <div>
-            {activeReservations.length === 0 ? (
-              <div className="py-12 text-center text-[#757684] space-y-2">
-                <span className="material-symbols-outlined text-[40px] text-[#bac3ff] block">event_busy</span>
-                <p className="font-bold text-sm text-[#191c1d]">No tienes citas activas en este momento</p>
-                <p className="text-xs">Elige un servicio del catálogo superior para solicitar tu reserva.</p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {activeReservations.map((res) => (
-                  <div
+        {/* Tabla de Citas */}
+        <div className="overflow-x-auto">
+          {displayedReservations.length === 0 ? (
+            <div className="py-14 text-center text-[#757684] space-y-2">
+              <span className="material-symbols-outlined text-[36px] text-[#bac3ff] block">event_available</span>
+              <p className="font-semibold text-sm text-[#191c1d]">No tienes citas en esta sección</p>
+              <p className="text-xs">Usa el catálogo superior para solicitar tu próxima reserva.</p>
+            </div>
+          ) : (
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="border-b border-[#e1e3e4] bg-[#f8f9fa] text-xs font-bold text-[#757684] uppercase tracking-wider">
+                  <th className="py-3.5 px-5">Fecha</th>
+                  <th className="py-3.5 px-5">Hora</th>
+                  <th className="py-3.5 px-5">Servicio</th>
+                  <th className="py-3.5 px-5">Profesional</th>
+                  <th className="py-3.5 px-5">Precio</th>
+                  <th className="py-3.5 px-5">Estado</th>
+                  <th className="py-3.5 px-5 text-right">Acciones</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[#e1e3e4] text-xs sm:text-sm">
+                {displayedReservations.map((res, index) => (
+                  <tr
                     key={res.id}
-                    className="p-5 border border-[#e1e3e4] bg-[#f8f9fa] rounded-2xl flex flex-col justify-between gap-4 shadow-2xs hover:border-[#bac3ff] transition-all"
+                    className={`transition-colors ${
+                      index % 2 === 1 ? 'bg-[#eff1f4]/40' : 'bg-white'
+                    } hover:bg-[#dee0ff]/20`}
                   >
-                    <div className="space-y-3">
-                      <div className="flex justify-between items-start gap-2">
-                        <div>
-                          <span className="font-bold text-base text-[#191c1d] block">
-                            {res.serviceName}
-                          </span>
-                          <span className="text-xs text-[#757684]">
-                            Profesional: <strong className="text-[#191c1d]">{res.professionalName}</strong>
-                          </span>
-                        </div>
-
-                        {/* Status Pill with Clear Badges */}
-                        <div className="text-right shrink-0">
-                          <span
-                            className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold capitalize ${
-                              res.status === 'confirmada'
-                                ? 'bg-[#e1f5ec] text-[#047857] border border-[#a7f3d0]'
-                                : res.status === 'en_curso'
-                                ? 'bg-[#e0e7ff] text-[#4338ca] border border-[#c7d2fe]'
-                                : res.status === 'cancelada'
-                                ? 'bg-[#ffdad6] text-[#ba1a1a] border border-[#ffb4ab]'
-                                : 'bg-[#ffdcc6] text-[#8f4700] border border-[#fed7aa]'
-                            }`}
-                          >
-                            <span
-                              className={`w-1.5 h-1.5 rounded-full ${
-                                res.status === 'confirmada'
-                                  ? 'bg-[#047857]'
-                                  : res.status === 'en_curso'
-                                  ? 'bg-[#4338ca]'
-                                  : res.status === 'cancelada'
-                                  ? 'bg-[#ba1a1a]'
-                                  : 'bg-[#8f4700]'
-                              }`}
-                            />
-                            <span>{res.status === 'pendiente' ? 'Pendiente de aprobación' : res.status.replace('_', ' ')}</span>
-                          </span>
-                        </div>
-                      </div>
-
-                      <div className="p-3 bg-white border border-[#e1e3e4] rounded-xl flex items-center justify-between text-xs font-mono">
-                        <div className="flex items-center gap-1.5 text-[#191c1d]">
-                          <span className="material-symbols-outlined text-[16px] text-[#24389c]">event</span>
-                          <span className="font-bold">{res.date}</span>
-                        </div>
-                        <div className="flex items-center gap-1.5 text-[#24389c] font-bold">
-                          <span className="material-symbols-outlined text-[16px]">schedule</span>
-                          <span>{res.time}</span>
-                        </div>
-                        <div className="font-bold text-[#191c1d]">
-                          ${Number(res.price || 0).toLocaleString('es-CO')}
-                        </div>
-                      </div>
-
-                      {res.status === 'pendiente' && (
-                        <p className="text-[11px] text-[#8f4700] bg-[#ffdcc6]/40 p-2 rounded-lg">
-                          Tu solicitud está en espera de confirmación por el equipo. Te notificaremos en cuanto sea aprobada.
-                        </p>
-                      )}
-                    </div>
-
-                    <div className="pt-3 border-t border-[#e1e3e4] flex items-center justify-end">
-                      <button
-                        onClick={() => {
-                          if (window.confirm('¿Deseas cancelar esta solicitud de cita?')) {
-                            onCancelReservation(res);
-                          }
-                        }}
-                        className="px-3.5 py-1.5 text-[#ba1a1a] hover:bg-[#ffdad6]/40 border border-[#ffdad6] rounded-xl text-xs font-bold transition-colors cursor-pointer"
-                      >
-                        Cancelar Solicitud
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
-        {tabMode === 'historial' && (
-          <div>
-            {pastReservations.length === 0 ? (
-              <div className="py-12 text-center text-[#757684]">
-                <p className="font-semibold text-sm text-[#191c1d]">No tienes historial de citas pasadas</p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {pastReservations.map((res) => (
-                  <div
-                    key={res.id}
-                    className="p-4 border border-[#e1e3e4] bg-white rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs"
-                  >
-                    <div>
-                      <span className="font-bold text-sm text-[#191c1d]">{res.serviceName}</span>
-                      <div className="text-[#757684] mt-0.5">
-                        {res.date} a las {res.time} • Profesional: <strong>{res.professionalName}</strong>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-3">
-                      <span className="font-mono font-bold text-sm text-[#191c1d]">
-                        ${Number(res.price || 0).toLocaleString('es-CO')}
-                      </span>
+                    <td className="py-3.5 px-5 font-mono font-medium text-[#191c1d] whitespace-nowrap">
+                      {res.date}
+                    </td>
+                    <td className="py-3.5 px-5 font-mono font-bold text-[#24389c] whitespace-nowrap">
+                      {res.time}
+                    </td>
+                    <td className="py-3.5 px-5 font-semibold text-[#191c1d] whitespace-nowrap">
+                      {res.serviceName}
+                    </td>
+                    <td className="py-3.5 px-5 text-[#454652] whitespace-nowrap">
+                      {res.professionalName}
+                    </td>
+                    <td className="py-3.5 px-5 font-mono font-bold text-[#191c1d] whitespace-nowrap">
+                      ${Number(res.price || 0).toLocaleString('es-CO')}
+                    </td>
+                    <td className="py-3.5 px-5 whitespace-nowrap">
                       <span
-                        className={`px-2.5 py-1 rounded-full font-bold capitalize ${
-                          res.status === 'completada'
-                            ? 'bg-[#dee0ff] text-[#24389c]'
-                            : 'bg-[#ffdad6] text-[#ba1a1a]'
+                        className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold capitalize ${
+                          res.status === 'confirmada'
+                            ? 'bg-[#e1f5ec] text-[#047857] border border-[#a7f3d0]'
+                            : res.status === 'en_curso'
+                            ? 'bg-[#e0e7ff] text-[#4338ca] border border-[#c7d2fe]'
+                            : res.status === 'cancelada'
+                            ? 'bg-[#ffdad6] text-[#ba1a1a] border border-[#ffb4ab]'
+                            : res.status === 'completada'
+                            ? 'bg-[#dee0ff] text-[#24389c] border border-[#bac3ff]'
+                            : 'bg-[#ffdcc6] text-[#8f4700] border border-[#fed7aa]'
                         }`}
                       >
-                        {res.status}
+                        <span
+                          className={`w-1.5 h-1.5 rounded-full ${
+                            res.status === 'confirmada'
+                              ? 'bg-[#047857]'
+                              : res.status === 'en_curso'
+                              ? 'bg-[#4338ca]'
+                              : res.status === 'cancelada'
+                              ? 'bg-[#ba1a1a]'
+                              : res.status === 'completada'
+                              ? 'bg-[#24389c]'
+                              : 'bg-[#8f4700]'
+                          }`}
+                        />
+                        <span>{res.status === 'pendiente' ? 'Pendiente' : res.status.replace('_', ' ')}</span>
                       </span>
-                    </div>
-                  </div>
+                    </td>
+                    <td className="py-3.5 px-5 text-right whitespace-nowrap">
+                      {res.status === 'pendiente' || res.status === 'confirmada' ? (
+                        <button
+                          onClick={() => {
+                            if (window.confirm('¿Deseas cancelar esta solicitud de cita?')) {
+                              onCancelReservation(res);
+                            }
+                          }}
+                          className="px-3 py-1.5 text-[#ba1a1a] hover:bg-[#ffdad6]/40 border border-[#ffdad6] rounded-xl text-xs font-bold transition-colors cursor-pointer"
+                        >
+                          Cancelar
+                        </button>
+                      ) : (
+                        <span className="text-[#a0a1ab] font-medium">-</span>
+                      )}
+                    </td>
+                  </tr>
                 ))}
-              </div>
-            )}
-          </div>
-        )}
+              </tbody>
+            </table>
+          )}
+        </div>
       </div>
     </div>
   );
