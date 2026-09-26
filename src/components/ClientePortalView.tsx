@@ -42,29 +42,22 @@ export const ClientePortalView: React.FC<ClientePortalViewProps> = ({
   const activeServices = services.filter((s) => s.active);
 
   return (
-    <div className="space-y-8 max-w-6xl mx-auto">
-      {/* Client Welcome Hero Card */}
-      <div className="bg-gradient-to-r from-[#24389c] to-[#3f51b5] text-white rounded-3xl p-6 sm:p-8 shadow-md flex flex-col sm:flex-row sm:items-center justify-between gap-6">
-        <div className="space-y-2">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-white/15 backdrop-blur-xs rounded-full text-xs font-bold">
-            <span>Portal del Cliente</span>
-          </div>
-          <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">
-            ¡Hola, {currentUser.name}!
+    <div className="space-y-6 max-w-6xl mx-auto">
+      {/* Header Section */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h2 className="text-2xl md:text-[28px] font-bold text-[#191c1d] tracking-tight">
+            Hola, {currentUser.name}
           </h2>
-          <p className="text-white/80 text-xs sm:text-sm max-w-xl">
-            Bienvenido a {businessConfig.name || 'nuestro centro'}. Explora los servicios disponibles abajo y agenda tu cita cuando lo desees.
+          <p className="text-[#454652] text-sm mt-1">
+            Bienvenido a {businessConfig.name || 'nuestro centro'}. Explora los servicios disponibles o gestiona tus citas.
           </p>
         </div>
 
         {activeReservations.length > 0 && (
-          <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl p-4 text-center sm:text-right shrink-0">
-            <span className="text-xs text-white/80 block uppercase font-bold tracking-wider">
-              Citas Activas
-            </span>
-            <span className="text-2xl font-bold text-white">
-              {activeReservations.length}
-            </span>
+          <div className="flex items-center gap-2 px-3.5 py-2 bg-white border border-[#e1e3e4] rounded-xl text-xs text-[#454652] shadow-2xs">
+            <span className="w-2 h-2 rounded-full bg-[#24389c]" />
+            <span>Citas activas: <strong className="text-[#191c1d]">{activeReservations.length}</strong></span>
           </div>
         )}
       </div>
