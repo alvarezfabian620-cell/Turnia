@@ -57,8 +57,8 @@ export default function App() {
   const [activities, setActivities] = useState<ActivityItem[]>([]);
   const [schedule, setSchedule] = useState<DaySchedule[]>([]);
   const [businessConfig, setBusinessConfig] = useState<BusinessConfig>({
-    name: 'Turnia Negocio & Reservas',
-    category: 'Estética & Bienestar',
+    name: 'Turnia Negocio y Reservas',
+    category: 'Estética y Bienestar',
     description: 'Gestión inteligente de reservas',
     phone: '',
     email: '',

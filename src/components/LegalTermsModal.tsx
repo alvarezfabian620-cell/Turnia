@@ -9,7 +9,7 @@ interface LegalTermsModalProps {
 export const LegalTermsModal: React.FC<LegalTermsModalProps> = ({
   isOpen,
   onClose,
-  title = 'Términos de Servicio & Política de Protección de Datos (Habeas Data / GDPR)',
+  title = 'Términos de Servicio y Política de Protección de Datos (Habeas Data / GDPR)',
 }) => {
   if (!isOpen) return null;
 

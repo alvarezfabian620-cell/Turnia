@@ -423,10 +423,10 @@ export const LoginView: React.FC<LoginViewProps> = ({
                       onChange={(e) => setRegCategory(e.target.value)}
                       className="w-full px-3 py-2 bg-white border border-[#e1e3e4] rounded-xl text-xs sm:text-sm text-[#191c1d] focus:border-[#24389c] outline-none"
                     >
-                      <option value="Barbería & Peluquería">Barbería & Peluquería</option>
-                      <option value="Estética & Spa">Estética & Spa</option>
-                      <option value="Salud & Bienestar">Salud & Bienestar</option>
-                      <option value="Consultorio & Citas">Consultorio & Citas</option>
+                      <option value="Barbería y Peluquería">Barbería y Peluquería</option>
+                      <option value="Estética y Spa">Estética y Spa</option>
+                      <option value="Salud y Bienestar">Salud y Bienestar</option>
+                      <option value="Consultorio y Citas">Consultorio y Citas</option>
                     </select>
                   </div>
                 </div>

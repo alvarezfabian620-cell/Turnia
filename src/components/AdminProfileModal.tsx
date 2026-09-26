@@ -32,8 +32,8 @@ export const AdminProfileModal: React.FC<AdminProfileModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4 backdrop-blur-sm">
-      <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl animate-in fade-in duration-150">
-        <div className="flex justify-between items-center pb-3 border-b border-[#e1e3e4] mb-4">
+      <div className="bg-white rounded-2xl max-w-md w-full shadow-2xl border border-[#e1e3e4] animate-in fade-in duration-150 max-h-[90vh] flex flex-col overflow-hidden">
+        <div className="flex justify-between items-center p-6 pb-4 border-b border-[#e1e3e4] shrink-0 bg-white">
           <h3 className="font-bold text-lg text-[#191c1d]">{modalTitle}</h3>
           <button
             onClick={onClose}
@@ -43,7 +43,8 @@ export const AdminProfileModal: React.FC<AdminProfileModalProps> = ({
           </button>
         </div>
 
-        <div className="flex flex-col items-center text-center py-3">
+        <div className="overflow-y-auto p-6 pt-2 flex-1">
+          <div className="flex flex-col items-center text-center py-3">
           <div className="w-20 h-20 rounded-full bg-gradient-to-tr from-[#24389c] to-[#3f51b5] text-white font-bold text-2xl flex items-center justify-center border-2 border-white shadow-md mb-3">
             {user?.name ? user.name.slice(0, 2).toUpperCase() : 'US'}
           </div>
@@ -69,7 +70,7 @@ export const AdminProfileModal: React.FC<AdminProfileModalProps> = ({
           <div className="flex justify-between py-1">
             <span className="text-[#757684]">Estado de la cuenta:</span>
             <span className="font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">
-              Activo & Verificado
+              Activo y Verificado
             </span>
           </div>
           <div className="flex justify-between py-1">
@@ -112,6 +113,7 @@ export const AdminProfileModal: React.FC<AdminProfileModalProps> = ({
             <span className="material-symbols-outlined text-[16px]">logout</span>
             <span>Cerrar sesión</span>
           </button>
+        </div>
         </div>
       </div>
     </div>

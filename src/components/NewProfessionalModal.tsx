@@ -63,20 +63,20 @@ export const NewProfessionalModal: React.FC<NewProfessionalModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4 backdrop-blur-sm">
-      <div className="bg-white rounded-xl max-w-md w-full p-6 shadow-2xl animate-in fade-in duration-150">
-        <div className="flex justify-between items-center pb-3 border-b border-[#e1e3e4] mb-4">
+      <div className="bg-white rounded-2xl max-w-md w-full shadow-2xl border border-[#e1e3e4] animate-in fade-in duration-150 max-h-[90vh] flex flex-col overflow-hidden">
+        <div className="flex justify-between items-center p-6 pb-4 border-b border-[#e1e3e4] shrink-0 bg-white">
           <h3 className="font-bold text-lg text-[#191c1d]">
             {editingProfessional ? 'Editar Profesional' : 'Agregar Profesional'}
           </h3>
           <button
             onClick={onClose}
-            className="p-1 text-[#757684] hover:text-[#191c1d] rounded-lg"
+            className="p-1 text-[#757684] hover:text-[#191c1d] rounded-lg cursor-pointer"
           >
             <span className="material-symbols-outlined text-[20px]">close</span>
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="overflow-y-auto p-6 pt-4 flex-1 space-y-4">
           <div>
             <label className="block text-xs font-semibold uppercase text-[#757684] mb-1">
               Nombre Completo *

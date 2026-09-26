@@ -93,9 +93,9 @@ export const ReservationDetailsModal: React.FC<ReservationDetailsModalProps> = (
 
   return (
     <div className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4 backdrop-blur-sm">
-      <div className="bg-white rounded-2xl max-w-lg w-full p-6 sm:p-7 shadow-2xl border border-[#e1e3e4] animate-in fade-in zoom-in-95 duration-150 relative">
+      <div className="bg-white rounded-2xl max-w-lg w-full shadow-2xl border border-[#e1e3e4] animate-in fade-in zoom-in-95 duration-150 max-h-[90vh] flex flex-col overflow-hidden relative">
         {/* Header without ID */}
-        <div className="flex justify-between items-center pb-4 border-b border-[#e1e3e4] mb-5">
+        <div className="flex justify-between items-center p-6 pb-4 border-b border-[#e1e3e4] shrink-0 bg-white">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-[#dee0ff] text-[#24389c] rounded-xl flex items-center justify-center shrink-0">
               <span className="material-symbols-outlined text-[22px]">event_note</span>
@@ -115,7 +115,7 @@ export const ReservationDetailsModal: React.FC<ReservationDetailsModalProps> = (
         </div>
 
         {/* Content */}
-        <div className="space-y-4">
+        <div className="overflow-y-auto p-6 pt-4 flex-1 space-y-4">
           {/* Client & Status banner */}
           <div className="flex justify-between items-center p-3.5 bg-[#f8f9fa] rounded-xl border border-[#e1e3e4]">
             <div>
